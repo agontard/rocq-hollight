@@ -710,12 +710,12 @@ Ltac align_ε :=
    - Lemma if_elim destructs hypothesis [if P then Q else R]
      as if it were (P /\ Q) \/ (~P /\ R) *)
 
-Lemma if_triv_True (A : Type') (P : Prop) (x y : A) : P -> (if P then x else y) = x.
+Lemma if_triv_True (A : Type) (P : Prop) (x y : A) : P -> (if P then x else y) = x.
 Proof.
   by rewrite -{1}(is_True P) => -> ; exact (if_True _ _).
 Qed.
 
-Lemma if_triv_False (A : Type') (P : Prop) (x y : A) : ~P -> (if P then x else y) = y.
+Lemma if_triv_False (A : Type) (P : Prop) (x y : A) : ~P -> (if P then x else y) = y.
 Proof.
   by rewrite -{1}(is_False P) => -> ; exact (if_False _ _).
 Qed.
@@ -747,7 +747,7 @@ Tactic Notation "if_triv" constr(P) "using" constr(H) :=
   (rewrite (if_triv_True _ P) ; last by auto using H') ||
   (rewrite (if_triv_False _ P) ; last by auto using H') ; clear H'.
 
-Lemma if_intro (A : Type') (Q : Prop) (P : A -> Prop) (x y : A) :
+Lemma if_intro (A : Type) (Q : Prop) (P : A -> Prop) (x y : A) :
   (Q -> P x) -> (~Q -> P y) -> P (if Q then x else y).
 Proof. case (pselect Q)=> [? /1= + _ | ? /1= _]; exact. Qed.
 

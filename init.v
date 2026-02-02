@@ -1,7 +1,8 @@
 From HB Require Import structures.
-From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat eqtype choice seq.
-From mathcomp Require Import boolp functions.
-From mathcomp Require Export classical_sets.
+From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
+From mathcomp Require Export eqtype choice.
+From mathcomp Require Import seq boolp functions.
+From mathcomp Require Export eqtype choice classical_sets.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -1054,7 +1055,6 @@ Ltac _dest_mk_inductive :=
 Ltac constr_align H := (* Takes as argument the lemma [forall x, _mk_T (_dest_T x) = x].
                           Requires explicit type arguments. *)
   extall ; match goal with |- ?x = _ => exact (esym (H x)) end.
-
 
 (*****************************************************************************)
 (* For Record-like types *)

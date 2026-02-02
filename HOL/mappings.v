@@ -9,7 +9,7 @@ From Equations Require Import Equations.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 From mathcomp Require Import fintype finset finfun order ssralg ssrnum matrix.
 From mathcomp Require Import interval ssrint intdiv archimedean finmap.
-From mathcomp Require Import interval_inference all_classical.
+From mathcomp Require Import interval_inference all_classical classical_sets.
 From HOLLight Require Import morepointedtypes.
 From mathcomp Require Import topology normedtype reals Rstruct_topology derive.
 From mathcomp Require Import realfun.
@@ -725,19 +725,15 @@ Close Scope int_scope.
 (*****************************************************************************)
 
 Open Scope classical_set_scope.
-Import classical_sets.
 
-Definition IN (A : Type) (a : A) (s : set A) : Prop := in_set s a.
+(* mathcomp often uses this version over the boolean in_set *)
+Definition IN (A : Type) (a : A) (s : set A) := s a.
 
 Lemma IN_def {A : Type'} : @IN A = (fun _32317 : A => fun _32318 : A -> Prop => _32318 _32317).
-Proof.
-  exact (funext (fun a => funext (fun s => in_setE s a))).
-Qed.
+Proof. by []. Qed.
 
 Lemma EMPTY_def (A : Type') : set0 = (fun x : A => False).
-Proof.
-  ext=>x H ; inversion H.
-Qed.
+Proof. by ext ; inversion 1. Qed.
 
 Definition INSERT (A : Type) (a : A) s := a |` s.
 
@@ -759,7 +755,8 @@ Definition SETSPEC (A : Type) (x : A) P := [set x' | P /\ x=x'].
 Lemma SETSPEC_def (A : Type') : (@SETSPEC A) = (fun _32334 : A => fun _32335 : Prop => fun _32336 : A => _32335 /\ (_32334 = _32336)).
 Proof. exact erefl. Qed.
 
-(* Eliminating useless GSPEC and SETSPEC combination *)
+(* Eliminating useless GSPEC and SETSPEC combination used for syntactic sugar
+   in HOL Light *)
 Lemma SPEC_elim (A : Type') {P : A -> Prop} : GSPEC (fun x => exists x', SETSPEC x (P x') x') = P.
 Proof.
   ext=> x H. destruct H as (x', (HP , e)). now subst x'.
@@ -779,23 +776,21 @@ Proof.
   by ext=> B C x ; rewrite SPEC_elim IN_def.
 Qed.
 
-Definition UNIONS (A : Type') (s : set (set A)) :=
-  [set a | exists s0, in_set s s0 /\ in_set s0 a].
+Definition UNIONS (A : Type') (s : set (set A)) := \bigcup_(x in s) x.
 
 Lemma UNIONS_def (A : Type') : (@UNIONS A) = (fun _32397 : (A -> Prop) -> Prop => @GSPEC A (fun GEN_PVAR_1 : A => exists x : A, @SETSPEC A GEN_PVAR_1 (exists u : A -> Prop, (@IN (A -> Prop) u _32397) /\ (@IN A x u)) x)).
 Proof.
-  apply funext=>s. symmetry. exact SPEC_elim.
+  by ext => ? ? ; rewrite SPEC_elim ; firstorder ; eauto.
 Qed.
 
-Definition INTERS (A : Type') (s : set (set A)) :=
-  [set a | forall s0, in_set s s0 -> in_set s0 a].
+Definition INTERS (A : Type') (s : set (set A)) := \bigcap_(x in s) x.
 
 Lemma INTERS_def (A : Type') : @INTERS A = (fun _32414 : (A -> Prop) -> Prop => @GSPEC A (fun GEN_PVAR_3 : A => exists x : A, @SETSPEC A GEN_PVAR_3 (forall u : A -> Prop, (@IN (A -> Prop) u _32414) -> @IN A x u) x)).
 Proof.
   apply funext => E. symmetry. exact SPEC_elim.
 Qed.
 
-Definition IMAGE {A B : Type} (f : A -> B) s := [set (f x) | x in s].
+Definition IMAGE {A B : Type} (f : A -> B) s := f @` s.
 
 Lemma IMAGE_def {A B : Type'} : (@IMAGE A B) = (fun _32493 : A -> B => fun _32494 : A -> Prop => @GSPEC B (fun GEN_PVAR_7 : B => exists y : B, @SETSPEC B GEN_PVAR_7 (exists x : A, (@IN A x _32494) /\ (y = (_32493 x))) y)).
 Proof.
@@ -805,7 +800,7 @@ Qed.
 
 (* Variant *)
 Lemma SPEC_IMAGE {A B : Type'} {f : A -> B} {s : set A} :
-  GSPEC (fun x => exists x', SETSPEC x (IN x' s) (f x')) = [set (f x) | x in s].
+  GSPEC (fun x => exists x', SETSPEC x (IN x' s) (f x')) = f @` s.
 Proof. fold (IMAGE f s). now rewrite IMAGE_def SPEC_elim. Qed.
 
 Lemma DIFF_def (A : Type') : setD = (fun _32419 : A -> Prop => fun _32420 : A -> Prop => @GSPEC A (fun GEN_PVAR_4 : A => exists x : A, @SETSPEC A GEN_PVAR_4 ((@IN A x _32419) /\ (~ (@IN A x _32420))) x)).
@@ -873,7 +868,6 @@ Lemma finite_setE (A : Type') : finite_set = @finite' A.
 Proof. by symmetry ; rewrite FINITE_def ; ind_align. Qed.
 
 (* Version using lists *)
-Open Scope list_scope.
 Definition set_of_list (A : Type') (l : seq A) : A -> Prop := [set` l].
 
 Lemma set_cons (A : Type') (a : A) (s : seq A) :
@@ -1148,8 +1142,8 @@ Proof. by []. Qed.
 
 (* Add rewriting dotdotE to pattern /3=. *)
 Ltac ssrsimpl3 ::=
-  rewrite ?SPEC_IMAGE?SPEC_elim/GSPEC/SETSPEC/DELETE/IMAGE/INTERS/UNIONS/
-  INSERT/BIT1/BIT0/NUMERAL?setU0?IN_def?dotdotE.
+  rewrite ?SPEC_elim?SPEC_IMAGE/GSPEC/SETSPEC/DELETE/IMAGE/INTERS/UNIONS/
+  INSERT/BIT1/BIT0/NUMERAL?setU0/IN?dotdotE.
 
 Lemma dotdot_def : dotdot = (fun _66922 : nat => fun _66923 : nat => @GSPEC nat (fun GEN_PVAR_231 : nat => exists x : nat, @SETSPEC nat GEN_PVAR_231 ((leqn _66922 x) /\ (leqn x _66923)) x)).
 Proof. by funext=> * /3= ; rewrite/leqn andP**. Qed.
@@ -1496,7 +1490,7 @@ Proof.
       rewrite/ord0 ; do 2 f_equal ; exact:proof_irrelevance.
 Qed.
 
-(*  !!! TODO: move somewhere, alignment of Libraries/analysis.ml !!!
+(*  !!! TODO: move somewhere, alignments for Libraries/analysis.ml !!!
 
 (*****************************************************************************)
 (* Disambiguate mathcomp and stdlib notations for reals. *)

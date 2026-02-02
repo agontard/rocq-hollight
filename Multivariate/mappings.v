@@ -181,12 +181,8 @@ Proof. _mk_dest_record. Qed.
 Lemma axiom_48 : forall {A : Type'} (r : (A -> Prop) -> Prop), ((fun t : (A -> Prop) -> Prop => @istopology A t) r) = ((@open_in A (@topology A r)) = r).
 Proof.
   _dest_mk_record by rewrite/3=. record_exists {| open_in := r |}.
-  - move=> S ; have -> : [set a | (exists s : set A, S s /\ s a)] =
-      [set a | (exists s : set A, s \in S /\ a \in s)] ; last by and_arrow.
-    by f_equal => /` a [s Hs] ; exists s ; move:Hs ; rewrite 2!in_setE.
-  - move=> S ; have <- : [set a | (exists s : set A, S s /\ s a)] =
-      [set a | (exists s : set A, s \in S /\ a \in s)] ; last by and_arrow.
-    by f_equal => /` a [s Hs] ; exists s ; move:Hs ; rewrite 2!in_setE.
+  - by rewrite bigcupE in H1 ; and_arrow.
+  - by rewrite bigcupE ; and_arrow.
 Qed.
 
 (*****************************************************************************)

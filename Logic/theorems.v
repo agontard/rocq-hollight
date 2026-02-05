@@ -1,5 +1,5 @@
 Require Import Stdlib.Reals.Reals mathcomp.boot.ssrnat mathcomp.boot.div mathcomp.boot.seq mathcomp.algebra.ssralg mathcomp.algebra.ssrint mathcomp.algebra.intdiv mathcomp.classical.classical_sets mathcomp.classical.cardinality mathcomp.analysis_stdlib.Rstruct_topology HOLLight.Logic.mappings.
-Require Import HOLLight.Logic.make_terms.
+Require Import HOLLight.Logic.terms.
 Axiom thm_T_DEF : True = ((fun p : Prop => p) = (fun p : Prop => p)).
 Axiom thm_AND_DEF : and = (fun p : Prop => fun q : Prop => (fun f : Prop -> Prop -> Prop => f p q) = (fun f : Prop -> Prop -> Prop => f True True)).
 Axiom thm_IMP_DEF : imp = (fun p : Prop => fun q : Prop => (p /\ q) = p).

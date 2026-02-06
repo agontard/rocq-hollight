@@ -65,7 +65,7 @@ Qed.
 
 Lemma R_leNgt {x y : R} : (~(x < y)) = (y <= x).
 Proof.
-  rewrite R_ltNge. exact:notE.
+  rewrite R_ltNge. exact:not_notE.
 Qed.
 
 Lemma neqE {A : eqType} {x y : A} : (x <> y) = (x != y).

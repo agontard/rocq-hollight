@@ -194,7 +194,7 @@ Definition ε (A : Type') (P : A -> Prop) := get P.
 Definition ε_spec {A : Type'} {P : A -> Prop} : (exists x, P x) -> P (ε P) := @getPex _ P.
 
 Lemma align_ε (A : Type') (P : A -> Prop) a : P a -> (forall x, P a -> P x -> a = x) -> a = ε P.
-Proof. 
+Proof.
   by move => ha ; apply ; last (apply ε_spec ; exists a).
 Qed.
 
@@ -559,7 +559,8 @@ Notation "5`" := (ltac:( let H1 := fresh in first [apply funext | eqProp]=>H1 ;
 Goal True -> test = test. move => * /f`* /3` H n0 m0. *)
 
 (****************************************************************************)
-(* The opposite, transform hypothesis f = g with forall x, f x = g x. *)
+(* Change top hypothesis of the form [f = g] with                           *)
+(* [forall x1 ... xn, f x1 ... xn = g x1 ... xn] or the opposite.           *)
 (****************************************************************************)
 
 Lemma gen_fun1 A B (f g : forall a : A, B a) : f = g <-> forall a, f a = g a.
@@ -609,27 +610,39 @@ Notation "[ 'funext' ]" := ltac:(lazymatch goal with
 Notation "[ 'gen' ]" := ltac:(try move/[funext] ; move_gen_fun).
 
 (****************************************************************************)
-(* specialize the top assumption *)
+(* specialize the top assumption during intros [move=> ... /[spec x] *)
 (****************************************************************************)
 
-Notation "[ 'spec' x ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x)).
+Ltac spec_tactic x := let H := fresh "_top_" in move=>H ; move:{H}(H x).
 
-Notation "[ 'spec' x | y ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x y)).
+Notation "[ 'spec' specarg1 ]" := ltac:(spec_tactic specarg1).
 
-Notation "[ 'spec' x | y | z ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x y z)).
+Notation "[ 'spec' specarg1 | specarg2 ]" := ltac:( spec_tactic specarg1 ; spec_tactic specarg2).
+
+Notation "[ 'spec' specarg1 | specarg2 | specarg3 ]" :=
+  ltac:(spec_tactic specarg1 ; spec_tactic specarg2 ; spec_tactic specarg3).
 
 Notation "[ 'spec' ]" :=
-  ltac:(lazymatch goal with
-  | |- (forall _: ?A, _) -> _ => have: A ; last move/[swap]/[apply]
+  ltac:(let H := fresh "_top_" in let arg := fresh "x" in lazymatch goal with
+  | |- (forall _: ?A, _) -> _ => have arg : A ;
+    last (move=>H ; move:{H} arg (H arg) ; try move=> _)
   | |- _ => fail "not a product type in top assumption" end).
 
-Notation "[ 'spec' 'by' [ ] ]" :=
-  ltac:(lazymatch goal with
-  | |- (forall _: ?A, _) -> _ => (have: A by []) => /[swap]/[apply]
-  | |- _ => fail "not a product type in top assumption" end).
+Notation "[ 'spec' 'by' [ ] ]" := ltac:(move/[spec] ; first by []).
+
+(****************************************************************************)
+(* replaces [ε ?P] with x such that [P x], adding [exists x, P x] as a goal *)
+(****************************************************************************)
+
+Ltac ε_spec_tactic tac := let x := fresh "x" in lazymatch goal with
+  |- context[@ε ?T0 ?P] => let T := (eval cbn in T0) in
+      have /[spec] := @ε_spec T0 P ; [tac | move: (ε P) ] ;
+      change T0 with T end.
+
+Tactic Notation "ε_spec" := ε_spec_tactic idtac.
+
+Tactic Notation "ε_spec" "by" tactic(tac) := ε_spec_tactic ltac:(by tac).
+Tactic Notation "ε_spec" "by" "[" "]" := ε_spec by unshelve eexists ; eauto 1.
 
 (****************************************************************************)
 (* Repeating exists. *)
@@ -700,7 +713,7 @@ Ltac align_ε :=
   in aux.
 
 (****************************************************************************)
-(* For if ... then ... else ... *)
+(* For if ... then ... else ... over Prop *)
 (****************************************************************************)
 
 (* The following are useful tools to work with COND :
@@ -936,9 +949,7 @@ Definition finv [A B : Type'] (f : A -> B) : B -> A := fun y => ε (fun x => f x
 
 Lemma finv_inv_l [A B : Type'] (f : A -> B) (x : A) :
   (forall x0 x1 : A, f x0 = f x1 -> x0 = x1) -> finv f (f x) = x.
-Proof.
-  intro H. apply H. apply (ε_spec (P := fun x' => f x' = f x)). now exists x. 
-Qed.
+Proof. by apply ; rewrite/finv ; ε_spec by exists x. Qed.
 
 Ltac finv_inv_l := intros ; apply finv_inv_l ; clearall.
 

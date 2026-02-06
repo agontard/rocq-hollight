@@ -163,11 +163,7 @@ Proof.
   intros [i j]. unfold real_sup.
   case (pselect (exists x : real, E x)) ; last contradiction.
   case (pselect (exists M : real, forall x : real, E x -> real_le x M)) ; last contradiction.
-  set (Q := fun M : real =>
-              (forall x : real, E x -> real_le x M) /\
-                (forall M' : real, (forall x : real, E x -> real_le x M') -> real_le M M')).
-  have k: exists M : real, Q M by exact: (thm_REAL_COMPLETE E (conj i j)).
-  by case (ε_spec k).
+  by (ε_spec by exact (thm_REAL_COMPLETE E (conj i j))) => ? -[].
 Qed.
 
 Lemma real_sup_upper_bound E : Real.has_sup E -> ub E (real_sup E).
@@ -925,15 +921,13 @@ Notation "[ 'seq' 'of' s ]" := (seq_of_set s) (format "[ 'seq'  'of'  s ]") : cl
 Lemma seq_of_set_spec (A:Type') (s : set A) (H : finite_set s):
   [set` [seq of s]] = s /\ uniq (seq_of_set s).
 Proof.
-  rewrite finite_setE in H ; rewrite/seq_of_set.
-  match goal with [|- [set` (ε ?Q)] = _ /\ _] => have ex : exists s, Q s end.
-  - elim: {s}H => [|S a _ [s [<- nds]]]; first by exists nil; rewrite set_nil.
-    case: (EM (a \in s))=>H.
-    + exists s ; split ; last by assumption.
-      by rewrite predeqP =>x /= ; split ; first auto ; last move=>[->|].
-    + exists (a::s) ; rewrite set_cons ; split ; first by [].
-      by rewrite cons_uniq -andP** -negP**.
-  - exact (ε_spec ex).
+  rewrite finite_setE in H ; rewrite/seq_of_set ; ε_spec ; last by [].
+  elim: {s}H => [|S a _ [s [<- nds]]]; first by exists nil; rewrite set_nil.
+  case: (EM (a \in s))=>H.
+  - exists s ; split ; last by assumption.
+    by rewrite predeqP =>x /= ; split ; first auto ; last move=>[->|].
+  - exists (a::s) ; rewrite set_cons ; split ; first by [].
+    by rewrite cons_uniq -andP** -negP**.
 Qed.
 
 Lemma In_seq_of_set (A:Type') (s : set A) :
@@ -1425,10 +1419,9 @@ Proof. exact (REFL (@monoidal A)). Qed.
 
 Lemma add_monoidal (M : nmodType) : @monoidal M%' +%R.
 Proof.
-  repeat split => * ; [exact: addrC | exact: addrA |].
-  rewrite/neutral ; have N0: exists x : M, forall y, (x+y = y /\ y+x = y)%mcR.
-  - by exists 0%R => ? ; rewrite addr0 add0r.
-  - by apply (@ε_spec M%' _ N0).
+  do! split ; [exact: addrC | exact: addrA |] => x.
+  rewrite/neutral ; ε_spec by exists 0%R => ? ; rewrite addr0 add0r.
+  by move=> ? /[spec x] -[].
 Qed.
 
 Definition support {A B : Type'} (prod : B -> B -> B) (f : A -> B) (s : set A) :=

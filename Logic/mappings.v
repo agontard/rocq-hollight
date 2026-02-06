@@ -765,10 +765,8 @@ Definition definite cl := clause cl /\ #|` fset_set (cl `&` positive) | = 1%nat.
 
 Lemma definite_def : definite = (fun _545149 : form -> Prop => (clause _545149) /\ ((@CARD form (@GSPEC form (fun GEN_PVAR_652 : form => exists p : form, @SETSPEC form GEN_PVAR_652 ((@IN form p _545149) /\ (positive p)) p))) = (NUMERAL (BIT1 0)))).
 Proof.
-  rewrite/definite/clause/CARD INTER_def.
-  ext => cl [[fincl +] +] ; rewrite if_triv_True ; rewrite/3= ; first by move=> + ->.
-  1,3 : by apply finite_setIl.
-  by repeat split ; auto ; apply Nnat.Nat2N.inj.
+  rewrite/definite/clause/CARD INTER_def => /` cl [[fincl +]] /3= /=.
+  1,2 : by (if_triv by exact: finite_setIl) => + ->.
 Qed.
 
 Definition horn cl := clause cl /\ (#|` fset_set (cl `&` positive) | <= 1)%nat.
@@ -776,9 +774,7 @@ Definition horn cl := clause cl /\ (#|` fset_set (cl `&` positive) | <= 1)%nat.
 Lemma horn_def : horn = (fun _545154 : form -> Prop => (clause _545154) /\ (leqn (@CARD form (@GSPEC form (fun GEN_PVAR_653 : form => exists p : form, @SETSPEC form GEN_PVAR_653 ((@IN form p _545154) /\ (positive p)) p))) (NUMERAL (BIT1 0)))).
 Proof.
   rewrite/horn/clause/CARD INTER_def.
-  ext => cl [[fincl +] +] ; rewrite if_triv_True ; rewrite/3=.
-  2,4 : by apply finite_setIl.
-  1,2 : by [].
+  by ext => cl [[fincl +] +] ; if_triv by rewrite/3= ; exact: finite_setIl.
 Qed.
 
 Definition falsify f cl := if definite cl then cl else f |` cl.
@@ -1391,12 +1387,6 @@ Proof. rewrite/3= ; ind_align. Qed.
 (*****************************************************************************)
 
 Definition NONWF A (R : A -> A -> Prop) (x : A) := ~Acc R x.
-
-Tactic Notation "ε_spec" := lazymatch goal with
-  |- context[ε ?P] => have /[spec] := @ε_spec _ P ; last move: (ε P) end.
-
-Tactic Notation "ε_spec" "by" tactic(tac) := lazymatch goal with
-  |- context[ε ?P] => have /[spec] := @ε_spec _ P ; [by tac | move: (ε P)] end.
 
 Lemma NONWF_def {A : Type'} :  (@NONWF A) = (fun _563585 : A -> A -> Prop => fun _563586 : A => ex (fun s : nat -> A => (eq (s (NUMERAL 0)) _563586) /\ (forall n : nat, _563585 (s (S n)) (s n)))).
 Proof.

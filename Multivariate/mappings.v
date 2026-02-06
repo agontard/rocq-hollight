@@ -420,7 +420,7 @@ Proof.
   - rewrite thm_NUMSEG_REC // setIC thm_INSERT_INTER=> /c` [sn | nsn].
     + have [_ ->] := @thm_SUM_CLAUSES nat nat.
       2: { apply: finite_setIl ; exact: thm_FINITE_NUMSEG. }
-      rewrite/COND if_triv_False ; last by rewrite/3=/setI/= ltnn => -[].
+      if_triv by rewrite/3=/setI/= ltnn => -[].
       rewrite big_mkcond big_ord_recr -big_mkcond /= addrC setIC IHn.
       by move:sn=> /3= ? /1=.
     + rewrite big_mkcond big_ord_recr -big_mkcond /= setIC IHn.

@@ -43,13 +43,10 @@ Definition IND_0 := ε IND_0_pred.
 Lemma IND_0_def : IND_0 = (@ε ind (fun z : ind => (forall x1 : ind, forall x2 : ind, ((IND_SUC x1) = (IND_SUC x2)) = (x1 = x2)) /\ (forall x : ind, ~ ((IND_SUC x) = z)))).
 Proof. exact erefl. Qed.
 
-Lemma IND_0_prop : IND_0_pred IND_0.
-Proof.
-  unfold IND_0 ; apply ε_spec ; exact: IND_SUC_prop.
-Qed.
-
 Lemma IND_SUC_neq_0 i : IND_SUC i <> IND_0.
-Proof. generalize IND_0_prop. intros [h1 h2]. apply h2. Qed.
+Proof.
+  rewrite/IND_0 ; (ε_spec by exact: IND_SUC_prop) => ? [_] ; exact.
+Qed.
 
 Inductive NUM_REP : ind -> Prop :=
   | NUM_REP_0 : NUM_REP IND_0
@@ -101,6 +98,13 @@ Definition BIT1 n := n.*2.+1.
 
 (* /2= in a rewrite/intro pattern *)
 Ltac ssrsimpl2 := rewrite/NUMERAL/BIT0/BIT1/double/=.
+
+(* Searches for a useless tuple of integers, and abstract over it
+   and (if possible) its type to make a goal more readable.
+   The type will sometimes not be abstractable if it appears inside an ε,
+   but not always for some reason *)
+Ltac genpair := lazymatch goal with |- context [@pair nat _ ?n ?r] =>
+  move:(n,r) ; try match type of (n,r) with ?T => move:T end end.
 
 Lemma BIT1_def : BIT1 = (fun _2143 : nat => S (BIT0 _2143)).
 Proof. exact erefl. Qed.
@@ -263,39 +267,24 @@ Proof.
   intros f h.
   exists (fun c => ε (fun a => exists b, f a b = c)).
   exists (fun c => ε (fun b => exists a, f a b = c)).
-  intros a b. split.
-  match goal with [|- ε ?x = _] => set (Q := x); set (q := ε Q) end.
-  assert (i : exists a, Q a). exists a. exists b. reflexivity.
-  generalize (ε_spec i). fold q. unfold Q. intros [b' j]. rewrite h in j.
-  destruct j as [j1 j2]. auto.
-  match goal with [|- ε ?x = _] => set (Q := x); set (q := ε Q) end.
-  assert (i : exists b, Q b). exists b. exists a. reflexivity.
-  generalize (ε_spec i). fold q. unfold Q. intros [a' j]. rewrite h in j.
-  destruct j as [j1 j2]. auto.
+  intros a b. split ; ε_spec by do 2 eexists ; reflexivity.
+  1,2 : by move=> ? [?] ; rewrite h=> -[].
 Qed.
 
-Definition NUMFST0_pred :=  fun X : nat -> nat => exists Y : nat -> nat, forall x : nat, forall y : nat, ((X (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y).
-
-Definition NUMFST0 := ε NUMFST0_pred.
+Definition NUMFST0 := ε (fun X : nat -> nat => exists Y : nat -> nat, forall x : nat, forall y : nat, ((X (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y)).
 
 Lemma NUMFST0_NUMPAIR x y : NUMFST0 (NUMPAIR x y) = x.
 Proof.
-  destruct (INJ_INVERSE2 NUMPAIR_INJ) as [fst [snd h]].
-  assert (i : exists q, NUMFST0_pred q). exists fst. exists snd. assumption.
-  generalize (ε_spec i). fold NUMFST0. unfold NUMFST0_pred.
-  intros [snd' h']. destruct (h' x y) as [j k]. assumption.
+  case:(INJ_INVERSE2 NUMPAIR_INJ) => /= [fst [snd h]] ; rewrite/NUMFST0.
+  (ε_spec by exist fst snd) => ? [? /[spec x | y] -[+ _]] ; exact.
 Qed.
 
-Definition NUMSND0_pred :=  fun Y : nat -> nat => exists X : nat -> nat, forall x : nat, forall y : nat, ((X (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y).
-
-Definition NUMSND0 := ε NUMSND0_pred.
+Definition NUMSND0 := ε (fun Y : nat -> nat => exists X : nat -> nat, forall x : nat, forall y : nat, ((X (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y)).
 
 Lemma NUMSND0_NUMPAIR x y : NUMSND0 (NUMPAIR x y) = y.
 Proof.
-  destruct (INJ_INVERSE2 NUMPAIR_INJ) as [fst [snd h]].
-  assert (i : exists x, NUMSND0_pred x). exists snd. exists fst. assumption.
-  generalize (ε_spec i). fold NUMSND0. unfold NUMSND0_pred.
-  intros [fst' h']. destruct (h' x y) as [j k]. assumption.
+  case: (INJ_INVERSE2 NUMPAIR_INJ) => /= [fst [snd h]] ; rewrite/NUMSND0.
+  (ε_spec by exist snd fst ) => ? [? /[spec x | y] -[_]] ; exact.
 Qed.
 
 Definition NUMFST := @ε ((prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> nat -> nat) (fun X : (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> nat -> nat => forall _17340 : prod nat (prod nat (prod nat (prod nat (prod nat nat)))), exists Y : nat -> nat, forall x : nat, forall y : nat, ((X _17340 (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y)) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0))))))))))))).
@@ -305,26 +294,19 @@ Proof. exact erefl. Qed.
 
 Lemma NUMFST_NUMPAIR x y : NUMFST (NUMPAIR x y) = x.
 Proof.
-  rewrite/NUMFST/2= ; generalize (78, (85, (77, (70, (83, 84))))).
-  generalize (nat * (nat * (nat * (nat * (nat * nat)))))%type => A a.
-  match goal with |- ε ?x _ _ = _ => set (Q := x); set (fst := ε Q) end.
-  assert (i: exists x, Q x). exists (fun _ => NUMFST0). unfold Q. intros _. exists NUMSND0.
-  intros x' y'. rewrite NUMFST0_NUMPAIR NUMSND0_NUMPAIR. auto.
-  generalize (ε_spec i). change (Q fst -> fst a (NUMPAIR x y) = x). intro h.
-  destruct (h a) as [snd j]. destruct (j x y) as [j1 j2]. exact j1.
+  rewrite/NUMFST/2= ; genpair=> ? p ; ε_spec.
+  - exists (fun=> NUMFST0) => _ ; exists NUMSND0.
+    split ; [exact: NUMFST0_NUMPAIR | exact: NUMSND0_NUMPAIR].
+  - by move=> ? /[spec p] -[? /[spec x | y] -[]].
 Qed.
 
-Definition NUMSND1_pred :=  fun Y : nat -> nat => forall x : nat, forall y : nat, ((NUMFST (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y).
-
-Definition NUMSND1 := ε NUMSND1_pred.
+Definition NUMSND1 := ε (fun Y : nat -> nat => forall x : nat, forall y : nat, ((NUMFST (NUMPAIR x y)) = x) /\ ((Y (NUMPAIR x y)) = y)).
 
 Lemma NUMSND1_NUMPAIR x y : NUMSND1 (NUMPAIR x y) = y.
 Proof.
-  destruct (INJ_INVERSE2 NUMPAIR_INJ) as [fst [snd h]].
-  assert (i : exists x, NUMSND1_pred x). exists snd. unfold NUMSND1_pred.
-  intros x' y'. rewrite NUMFST_NUMPAIR. destruct (h x' y') as [h1 h2]. auto.
-  generalize (ε_spec i). fold NUMSND1. unfold NUMSND1_pred. intro j.
-  destruct (j x y) as [j1 j2]. exact j2.
+  case: (INJ_INVERSE2 NUMPAIR_INJ)=> /= [fst [snd h]]; rewrite/NUMSND1.
+  ε_spec by exists snd ; split ; [exact: NUMFST_NUMPAIR | apply h].
+  by move=> ? res ; apply res.
 Qed.
 
 Definition NUMSND := @ε ((prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> nat -> nat) (fun Y : (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> nat -> nat => forall _17341 : prod nat (prod nat (prod nat (prod nat (prod nat nat)))), forall x : nat, forall y : nat, ((NUMFST (NUMPAIR x y)) = x) /\ ((Y _17341 (NUMPAIR x y)) = y)) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT0 (BIT0 (BIT1 0))))))))))))).
@@ -334,13 +316,9 @@ Proof. exact erefl. Qed.
 
 Lemma NUMSND_NUMPAIR x y : NUMSND (NUMPAIR x y) = y.
 Proof.
-  rewrite/NUMSND/2= ; generalize (78, (85, (77, (83, (78, 68))))).
-  generalize (prod nat (prod nat (prod nat (prod nat (prod nat nat))))); intros A a.
-  match goal with |- ε ?x _ _ = _ => set (Q := x); set (snd := ε Q) end.
-  assert (i: exists x, Q x). exists (fun _ => NUMSND1). unfold Q. intros _.
-  intros x' y'. rewrite NUMFST_NUMPAIR NUMSND1_NUMPAIR. auto.
-  generalize (ε_spec i). change (Q snd -> snd a (NUMPAIR x y) = y). intro h.
-  destruct (h a x y) as [h1 h2]. exact h2.
+  rewrite/NUMSND/2= ; genpair => ? p.
+  ε_spec by exists (fun=>NUMSND1)=> _ *;rewrite NUMFST_NUMPAIR NUMSND1_NUMPAIR.
+  move=> ? /[spec p | x | y] -[_] ; exact.
 Qed.
 
 (****************************************************************************)
@@ -388,7 +366,6 @@ Qed.
 
 Lemma NUMLEFT_def : NUMLEFT = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) -> nat -> Prop) (fun X : (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) -> nat -> Prop => forall _17372 : prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))), exists Y : nat -> nat, forall x : Prop, forall y : nat, ((X _17372 (NUMSUM x y)) = x) /\ ((Y (NUMSUM x y)) = y)) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT0 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0))))))))))))))).
 Proof.
-  cbn.
   align_ε.
   - exists NUMRIGHT.
     intros x y.
@@ -405,7 +382,6 @@ Qed.
 
 Lemma NUMRIGHT_def : NUMRIGHT = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))) -> nat -> nat) (fun Y : (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))) -> nat -> nat => forall _17373 : prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))), forall x : Prop, forall y : nat, ((NUMLEFT (NUMSUM x y)) = x) /\ ((Y _17373 (NUMSUM x y)) = y)) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT0 (BIT0 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))))))))))).
 Proof.
-  cbn.
   align_ε.
   - split.
     + exact (NUMLEFT_NUMSUM x y).
@@ -577,7 +553,7 @@ Lemma axiom_10 : forall {A : Type'} (P : nat -> A -> Prop), (@ZRECSPACE A P) = (
 Proof.
   intros A P. apply finv_inv_r.
   - induction 1.
-    + now exists BOTTOM.
+    + by exists BOTTOM.
     + exists (CONSTR c i (fun n => _mk_rec (r n))). simpl. f_equal. 
       ext 1 =>n. exact (ε_spec (H0 n)).
   - intros (r , <-). induction r ; now constructor.

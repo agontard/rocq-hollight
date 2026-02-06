@@ -57,7 +57,7 @@ Proof.
   - subst y. split ; exact: le_refl.
 Qed.
 
-Lemma R_ltNge {x y : R} : ((x < y) : Prop) = ~ (y <= x).
+Lemma R_ltNge {x y : R} : ((x < y) : Prop) = (~ (y <= x)).
 Proof.
   rewrite real_ltNge ; try exact:num_real.
   symmetry ; exact: negP**.
@@ -426,7 +426,7 @@ Proof.
     + case (pselect (r = 0)) => [-> | neq_r_0] ; first by rewrite sqrtr0.
       have spos_r : 0 < r by rewrite lt_neqAle -andP** -negP** -eqP** sym.
       by rewrite/sgr !gtr0_sg // sqrtr_gt0.
-    + rewrite/expr; case (sqrtrP r); [by rewrite R_ltNge|] => /={}r{}pos_r.
+    + rewrite/expr ; case (sqrtrP r) ; [by rewrite R_ltNge|move=>/={}r{}pos_r].
       rewrite ger0_norm ; [exact: erefl | exact: sqr_ge0].
     + rewrite/sgr ltr0_sg ; first by rewrite ltr0_sg ?RltE.
       by rewrite oppr_lt0 sqrtr_gt0 -oppr_lt0 opprK.
@@ -624,8 +624,6 @@ Qed.
 
 Definition congruent_modz {R : pzRingType} (a b c : R) :=
   exists k : int, b - c = a *~ k.
-
-Notation "x = y %[modz z ]" := (congruent_modz z x y) : ring_scope.
 
 Definition congruent_modzr : R -> R -> R -> Prop := congruent_modz.
 
@@ -1307,7 +1305,7 @@ Definition dest_finite_diff A B := dest_enum (finite_diff_key A B).
 Definition axiom_33 A B : forall a : finite_diff A B, (@mk_finite_diff A B (@dest_finite_diff A B a)) = a :=
   mk_dest_enum (finite_diff_key A B).
 
-Lemma ltn1 n : n < 1 = (n == 0).
+Lemma ltn1 n : (n < 1) = (n == 0).
 Proof. by case: n. Qed.
 
 Lemma axiom_34 A B : forall r : nat, ((fun x : nat => @IN nat x (dotdot (NUMERAL (BIT1 0)) (@COND nat (ltn (@dimindex B [set: B]) (@dimindex A [set: A])) (subn (@dimindex A [set: A]) (@dimindex B [set: B])) (NUMERAL (BIT1 0))))) r) = ((@dest_finite_diff A B (@mk_finite_diff A B r)) = r).
@@ -1419,7 +1417,7 @@ Proof. exact (REFL (@monoidal A)). Qed.
 
 Lemma add_monoidal (M : nmodType) : @monoidal M%' +%R.
 Proof.
-  do! split ; [exact: addrC | exact: addrA |] => x.
+  do! split ; [exact: addrC | exact: addrA | move=> x].
   rewrite/neutral ; ε_spec by exists 0%R => ? ; rewrite addr0 add0r.
   by move=> ? /[spec x] -[].
 Qed.

@@ -19,12 +19,12 @@ Set Bullet Behavior "Strict Subproofs".
 Definition LET {A B : Type} (f : A -> B) := f.
 
 Lemma LET_def {A B : Type'} : LET = (fun f : A -> B => fun x : A => f x).
-Proof erefl.
+Proof. exact erefl. Qed.
 
 Definition LET_END {A : Type} (a : A) := a.
 
 Lemma LET_END_def {A : Type'} : LET_END = (fun t : A => t).
-Proof erefl.
+Proof. exact erefl. Qed.
 
 Lemma let_clear {A B} : forall (f : A -> B) x, LET (fun x => LET_END (f x)) x = (let x := x in f x).
 Proof. reflexivity. Qed.
@@ -45,7 +45,7 @@ Proof. ind_align. Qed.
 Definition MEASURE {A : Type} f (x y : A) : Prop := f x < f y.
 
 Lemma MEASURE_def {A : Type'} : (@MEASURE A) = (fun _8094 : A -> nat => fun x : A => fun y : A => ltn (_8094 x) (_8094 y)).
-Proof erefl.
+Proof. exact erefl. Qed.
 
 Lemma WFP_def {_184264 : Type'} : @Acc _184264 = (fun lt2' : _184264 -> _184264 -> Prop => fun a : _184264 => forall WFP' : _184264 -> Prop, (forall a' : _184264, (forall y : _184264, (lt2' y a') -> WFP' y) -> WFP' a') -> WFP' a).
 Proof. ind_align. Qed.

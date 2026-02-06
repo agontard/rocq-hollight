@@ -209,7 +209,7 @@ Ltac is_True H :=
   match type of H' with ?P => rewrite <- (is_True P) in H' ;
     rewrite -> H' in * ; clear H' ; try clear H end.
 
-Lemma is_False P : (P = False) = ~ P.
+Lemma is_False P : (P = False) = (~ P).
 Proof.
   by ext=> // ->.
 Qed.

@@ -359,9 +359,10 @@ Lemma from_setI_closed : forall s s' : set nat,
   range from s -> range from s' -> range from (s `&` s').
 Proof.
   move=> _ _ [n _ <-] [n' _ <-] ; exists (maxn n n') => // ; symmetry.
-  rewrite/from/maxn ; case ltnP=> ? ; [apply: setIidr | apply: setIidl] => k.
-  1,2 : rewrite/= 2!in_itv /= 2!Bool.andb_true_r; apply: le_trans => //.
-  exact: ltW.
+  rewrite/from/maxn ; case ltnP=> ? ; [apply: setIidr | apply: setIidl].
+  1,2: move=> ? ; rewrite/= 2!in_itv /= 2!Bool.andb_true_r. 
+  - exact/le_trans/ltW.
+  - exact: le_trans.
 Qed.
 
 Definition sequentially : net nat := {|

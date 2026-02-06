@@ -198,7 +198,7 @@ Lemma literal_def : literal = (fun _276404 : form => (atom _276404) \/ (exists q
 Proof.
   ext.
   - by case ; auto ; case => // n s [] // ; right ; exists (Atom n s).
-  - by move=> f [| [f' []]] ; [elim:f | elim: f'] => // ? ? _ ->.
+  - by move=> f [| [f' []]] ; [elim:f | elim: f'] ; move=> // ? ? _ ->.
 Qed.
 
 (* finite set of negatomic formulae *)

@@ -594,7 +594,7 @@ builtin "is_topology" ≔ is_topology;
 builtin "is_topology_def" ≔ is_topology_def;
 builtin "Topology" ≔ Topology;
 builtin "topology" ≔ topology;
-builtin "open" ≔ _open;
+builtin "opens" ≔ _open;
 builtin "_mk_dest_Topology" ≔ axiom_41;
 builtin "_dest_mk_Topology" ≔ axiom_42;
 builtin "neigh" ≔ neigh;

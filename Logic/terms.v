@@ -230,63 +230,24 @@ Proof. exact (REFL (@superadmissible _138490 _138492 _138498)). Qed.
 Definition psum : (prod nat nat) -> (nat -> R) -> R := @ε ((prod nat (prod nat (prod nat nat))) -> (prod nat nat) -> (nat -> R) -> R) (fun sum' : (prod nat (prod nat (prod nat nat))) -> (prod nat nat) -> (nat -> R) -> R => forall _114544 : prod nat (prod nat (prod nat nat)), (forall f : nat -> R, forall n : nat, (sum' _114544 (@pair nat nat n (NUMERAL O)) f) = (R_of_nat (NUMERAL O))) /\ (forall f : nat -> R, forall m : nat, forall n : nat, (sum' _114544 (@pair nat nat n (S m)) f) = (addr (sum' _114544 (@pair nat nat n m) f) (f (addn n m))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O))))))))))).
 Lemma psum_def : psum = (@ε ((prod nat (prod nat (prod nat nat))) -> (prod nat nat) -> (nat -> R) -> R) (fun sum' : (prod nat (prod nat (prod nat nat))) -> (prod nat nat) -> (nat -> R) -> R => forall _114544 : prod nat (prod nat (prod nat nat)), (forall f : nat -> R, forall n : nat, (sum' _114544 (@pair nat nat n (NUMERAL O)) f) = (R_of_nat (NUMERAL O))) /\ (forall f : nat -> R, forall m : nat, forall n : nat, (sum' _114544 (@pair nat nat n (S m)) f) = (addr (sum' _114544 (@pair nat nat n m) f) (f (addn n m))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))))))).
 Proof. exact (REFL psum). Qed.
-Definition re_Union {A : Type'} : ((A -> Prop) -> Prop) -> A -> Prop := fun _114591 : (A -> Prop) -> Prop => fun x : A => exists s : A -> Prop, (_114591 s) /\ (s x).
-Lemma re_Union_def {A : Type'} : (@re_Union A) = (fun _114591 : (A -> Prop) -> Prop => fun x : A => exists s : A -> Prop, (_114591 s) /\ (s x)).
-Proof. exact (REFL (@re_Union A)). Qed.
-Definition re_union {A : Type'} : (A -> Prop) -> (A -> Prop) -> A -> Prop := fun _114596 : A -> Prop => fun _114597 : A -> Prop => fun x : A => (_114596 x) \/ (_114597 x).
-Lemma re_union_def {A : Type'} : (@re_union A) = (fun _114596 : A -> Prop => fun _114597 : A -> Prop => fun x : A => (_114596 x) \/ (_114597 x)).
-Proof. exact (REFL (@re_union A)). Qed.
-Definition re_intersect {A : Type'} : (A -> Prop) -> (A -> Prop) -> A -> Prop := fun _114608 : A -> Prop => fun _114609 : A -> Prop => fun x : A => (_114608 x) /\ (_114609 x).
-Lemma re_intersect_def {A : Type'} : (@re_intersect A) = (fun _114608 : A -> Prop => fun _114609 : A -> Prop => fun x : A => (_114608 x) /\ (_114609 x)).
-Proof. exact (REFL (@re_intersect A)). Qed.
-Definition re_null {A : Type'} : A -> Prop := fun x : A => False.
-Lemma re_null_def {A : Type'} : (@re_null A) = (fun x : A => False).
-Proof. exact (REFL (@re_null A)). Qed.
-Definition re_universe {A : Type'} : A -> Prop := fun x : A => True.
-Lemma re_universe_def {A : Type'} : (@re_universe A) = (fun x : A => True).
-Proof. exact (REFL (@re_universe A)). Qed.
-Definition re_subset {A : Type'} : (A -> Prop) -> (A -> Prop) -> Prop := fun _114620 : A -> Prop => fun _114621 : A -> Prop => forall x : A, (_114620 x) -> _114621 x.
-Lemma re_subset_def {A : Type'} : (@re_subset A) = (fun _114620 : A -> Prop => fun _114621 : A -> Prop => forall x : A, (_114620 x) -> _114621 x).
-Proof. exact (REFL (@re_subset A)). Qed.
-Definition re_compl {A : Type'} : (A -> Prop) -> A -> Prop := fun _114632 : A -> Prop => fun x : A => ~ (_114632 x).
-Lemma re_compl_def {A : Type'} : (@re_compl A) = (fun _114632 : A -> Prop => fun x : A => ~ (_114632 x)).
-Proof. exact (REFL (@re_compl A)). Qed.
-Definition istopology {A : Type'} : ((A -> Prop) -> Prop) -> Prop := fun _114641 : (A -> Prop) -> Prop => (_114641 (@re_null A)) /\ ((_114641 (@re_universe A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114641 a) /\ (_114641 b)) -> _114641 (@re_intersect A a b)) /\ (forall P : (A -> Prop) -> Prop, (@re_subset (A -> Prop) P _114641) -> _114641 (@re_Union A P)))).
-Lemma istopology_def {A : Type'} : (@istopology A) = (fun _114641 : (A -> Prop) -> Prop => (_114641 (@re_null A)) /\ ((_114641 (@re_universe A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114641 a) /\ (_114641 b)) -> _114641 (@re_intersect A a b)) /\ (forall P : (A -> Prop) -> Prop, (@re_subset (A -> Prop) P _114641) -> _114641 (@re_Union A P))))).
+Definition istopology {A : Type'} : ((A -> Prop) -> Prop) -> Prop := fun _114641 : (A -> Prop) -> Prop => (_114641 (@set0 A)) /\ ((_114641 (@setT A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114641 a) /\ (_114641 b)) -> _114641 (@setI A a b)) /\ (forall P : (A -> Prop) -> Prop, (@subset (A -> Prop) P _114641) -> _114641 (@UNIONS A P)))).
+Lemma istopology_def {A : Type'} : (@istopology A) = (fun _114641 : (A -> Prop) -> Prop => (_114641 (@set0 A)) /\ ((_114641 (@setT A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114641 a) /\ (_114641 b)) -> _114641 (@setI A a b)) /\ (forall P : (A -> Prop) -> Prop, (@subset (A -> Prop) P _114641) -> _114641 (@UNIONS A P))))).
 Proof. exact (REFL (@istopology A)). Qed.
-Definition neigh {A : Type'} : (Topology A) -> (prod (A -> Prop) A) -> Prop := fun _114654 : Topology A => fun _114655 : prod (A -> Prop) A => exists P : A -> Prop, (@open A _114654 P) /\ ((@re_subset A P (@fst (A -> Prop) A _114655)) /\ (P (@snd (A -> Prop) A _114655))).
-Lemma neigh_def {A : Type'} : (@neigh A) = (fun _114654 : Topology A => fun _114655 : prod (A -> Prop) A => exists P : A -> Prop, (@open A _114654 P) /\ ((@re_subset A P (@fst (A -> Prop) A _114655)) /\ (P (@snd (A -> Prop) A _114655)))).
-Proof. exact (REFL (@neigh A)). Qed.
-Definition closed {A : Type'} : (Topology A) -> (A -> Prop) -> Prop := fun _114675 : Topology A => fun _114676 : A -> Prop => @open A _114675 (@re_compl A _114676).
-Lemma closed_def {A : Type'} : (@closed A) = (fun _114675 : Topology A => fun _114676 : A -> Prop => @open A _114675 (@re_compl A _114676)).
+Definition closed {A : Type'} : (Topology A) -> (A -> Prop) -> Prop := fun _114675 : Topology A => fun _114676 : A -> Prop => @opens A _114675 (@setC A _114676).
+Lemma closed_def {A : Type'} : (@closed A) = (fun _114675 : Topology A => fun _114676 : A -> Prop => @opens A _114675 (@setC A _114676)).
 Proof. exact (REFL (@closed A)). Qed.
 Definition limpt {A : Type'} : (Topology A) -> A -> (A -> Prop) -> Prop := fun _114687 : Topology A => fun _114688 : A => fun _114689 : A -> Prop => forall N' : A -> Prop, (@neigh A _114687 (@pair (A -> Prop) A N' _114688)) -> exists y : A, (~ (_114688 = y)) /\ ((_114689 y) /\ (N' y)).
 Lemma limpt_def {A : Type'} : (@limpt A) = (fun _114687 : Topology A => fun _114688 : A => fun _114689 : A -> Prop => forall N' : A -> Prop, (@neigh A _114687 (@pair (A -> Prop) A N' _114688)) -> exists y : A, (~ (_114688 = y)) /\ ((_114689 y) /\ (N' y))).
 Proof. exact (REFL (@limpt A)). Qed.
-Definition mtop {A : Type'} : (Metric A) -> Topology A := fun _114835 : Metric A => @topology A (fun S' : A -> Prop => forall x : A, (S' x) -> exists e : R, (ltr (R_of_nat (NUMERAL O)) e) /\ (forall y : A, (ltr (@mdist A _114835 (@pair A A x y)) e) -> S' y)).
-Lemma mtop_def {A : Type'} : (@mtop A) = (fun _114835 : Metric A => @topology A (fun S' : A -> Prop => forall x : A, (S' x) -> exists e : R, (ltr (R_of_nat (NUMERAL O)) e) /\ (forall y : A, (ltr (@mdist A _114835 (@pair A A x y)) e) -> S' y))).
-Proof. exact (REFL (@mtop A)). Qed.
 Definition ball {A : Type'} : (Metric A) -> (prod A R) -> A -> Prop := fun _114846 : Metric A => fun _114847 : prod A R => fun y : A => ltr (@mdist A _114846 (@pair A A (@fst A R _114847) y)) (@snd A R _114847).
 Lemma ball_def {A : Type'} : (@ball A) = (fun _114846 : Metric A => fun _114847 : prod A R => fun y : A => ltr (@mdist A _114846 (@pair A A (@fst A R _114847) y)) (@snd A R _114847)).
 Proof. exact (REFL (@ball A)). Qed.
-Definition mr1 : Metric R := @metric R (@ε ((prod R R) -> R) (fun f : (prod R R) -> R => forall x : R, forall y : R, @eq R (f (@pair R R x y)) (normr (subr y x)))).
-Lemma mr1_def : mr1 = (@metric R (@ε ((prod R R) -> R) (fun f : (prod R R) -> R => forall x : R, forall y : R, @eq R (f (@pair R R x y)) (normr (subr y x))))).
-Proof. exact (REFL mr1). Qed.
 Definition dorder {A : Type'} : (A -> A -> Prop) -> Prop := fun _114928 : A -> A -> Prop => forall x : A, forall y : A, ((_114928 x x) /\ (_114928 y y)) -> exists z : A, (_114928 z z) /\ (forall w : A, (_114928 w z) -> (_114928 w x) /\ (_114928 w y)).
 Lemma dorder_def {A : Type'} : (@dorder A) = (fun _114928 : A -> A -> Prop => forall x : A, forall y : A, ((_114928 x x) /\ (_114928 y y)) -> exists z : A, (_114928 z z) /\ (forall w : A, (_114928 w z) -> (_114928 w x) /\ (_114928 w y))).
 Proof. exact (REFL (@dorder A)). Qed.
-Definition tends {A B : Type'} : (B -> A) -> A -> (prod (Topology A) (B -> B -> Prop)) -> Prop := fun _114933 : B -> A => fun _114934 : A => fun _114935 : prod (Topology A) (B -> B -> Prop) => forall N' : A -> Prop, (@neigh A (@fst (Topology A) (B -> B -> Prop) _114935) (@pair (A -> Prop) A N' _114934)) -> exists n : B, (@snd (Topology A) (B -> B -> Prop) _114935 n n) /\ (forall m : B, (@snd (Topology A) (B -> B -> Prop) _114935 m n) -> N' (_114933 m)).
-Lemma tends_def {A B : Type'} : (@tends A B) = (fun _114933 : B -> A => fun _114934 : A => fun _114935 : prod (Topology A) (B -> B -> Prop) => forall N' : A -> Prop, (@neigh A (@fst (Topology A) (B -> B -> Prop) _114935) (@pair (A -> Prop) A N' _114934)) -> exists n : B, (@snd (Topology A) (B -> B -> Prop) _114935 n n) /\ (forall m : B, (@snd (Topology A) (B -> B -> Prop) _114935 m n) -> N' (_114933 m))).
-Proof. exact (REFL (@tends A B)). Qed.
 Definition bounded {A B : Type'} : (prod (Metric A) (B -> B -> Prop)) -> (B -> A) -> Prop := fun _114960 : prod (Metric A) (B -> B -> Prop) => fun _114961 : B -> A => exists k : R, exists x : A, exists N' : B, (@snd (Metric A) (B -> B -> Prop) _114960 N' N') /\ (forall n : B, (@snd (Metric A) (B -> B -> Prop) _114960 n N') -> ltr (@mdist A (@fst (Metric A) (B -> B -> Prop) _114960) (@pair A A (_114961 n) x)) k).
 Lemma bounded_def {A B : Type'} : (@bounded A B) = (fun _114960 : prod (Metric A) (B -> B -> Prop) => fun _114961 : B -> A => exists k : R, exists x : A, exists N' : B, (@snd (Metric A) (B -> B -> Prop) _114960 N' N') /\ (forall n : B, (@snd (Metric A) (B -> B -> Prop) _114960 n N') -> ltr (@mdist A (@fst (Metric A) (B -> B -> Prop) _114960) (@pair A A (_114961 n) x)) k)).
 Proof. exact (REFL (@bounded A B)). Qed.
-Definition tendsto {A : Type'} : (prod (Metric A) A) -> A -> A -> Prop := fun _114977 : prod (Metric A) A => fun _114978 : A => fun _114979 : A => (ltr (R_of_nat (NUMERAL O)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978))) /\ (ler (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114979))).
-Lemma tendsto_def {A : Type'} : (@tendsto A) = (fun _114977 : prod (Metric A) A => fun _114978 : A => fun _114979 : A => (ltr (R_of_nat (NUMERAL O)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978))) /\ (ler (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114979)))).
-Proof. exact (REFL (@tendsto A)). Qed.
-Definition tends_num_real : (nat -> R) -> R -> Prop := fun _115068 : nat -> R => fun _115069 : R => @tends R nat _115068 _115069 (@pair (Topology R) (nat -> nat -> Prop) (@mtop R mr1) geqn).
-Lemma tends_num_real_def : tends_num_real = (fun _115068 : nat -> R => fun _115069 : R => @tends R nat _115068 _115069 (@pair (Topology R) (nat -> nat -> Prop) (@mtop R mr1) geqn)).
-Proof. exact (REFL tends_num_real). Qed.
 Definition convergent : (nat -> R) -> Prop := fun _115124 : nat -> R => exists l : R, tends_num_real _115124 l.
 Lemma convergent_def : convergent = (fun _115124 : nat -> R => exists l : R, tends_num_real _115124 l).
 Proof. exact (REFL convergent). Qed.
@@ -311,18 +272,6 @@ Proof. exact (REFL summable). Qed.
 Definition suminf : (nat -> R) -> R := fun _115443 : nat -> R => @ε R (fun s : R => sums _115443 s).
 Lemma suminf_def : suminf = (fun _115443 : nat -> R => @ε R (fun s : R => sums _115443 s)).
 Proof. exact (REFL suminf). Qed.
-Definition tends_real_real : (R -> R) -> R -> R -> Prop := fun _115511 : R -> R => fun _115512 : R => fun _115513 : R => @tends R R _115511 _115512 (@pair (Topology R) (R -> R -> Prop) (@mtop R mr1) (@tendsto R (@pair (Metric R) R mr1 _115513))).
-Lemma tends_real_real_def : tends_real_real = (fun _115511 : R -> R => fun _115512 : R => fun _115513 : R => @tends R R _115511 _115512 (@pair (Topology R) (R -> R -> Prop) (@mtop R mr1) (@tendsto R (@pair (Metric R) R mr1 _115513)))).
-Proof. exact (REFL tends_real_real). Qed.
-Definition diffl : (R -> R) -> R -> R -> Prop := fun _115541 : R -> R => fun _115542 : R => fun _115543 : R => tends_real_real (fun h : R => divr (subr (_115541 (addr _115543 h)) (_115541 _115543)) h) _115542 (R_of_nat (NUMERAL O)).
-Lemma diffl_def : diffl = (fun _115541 : R -> R => fun _115542 : R => fun _115543 : R => tends_real_real (fun h : R => divr (subr (_115541 (addr _115543 h)) (_115541 _115543)) h) _115542 (R_of_nat (NUMERAL O))).
-Proof. exact (REFL diffl). Qed.
-Definition contl : (R -> R) -> R -> Prop := fun _115562 : R -> R => fun _115563 : R => tends_real_real (fun h : R => _115562 (addr _115563 h)) (_115562 _115563) (R_of_nat (NUMERAL O)).
-Lemma contl_def : contl = (fun _115562 : R -> R => fun _115563 : R => tends_real_real (fun h : R => _115562 (addr _115563 h)) (_115562 _115563) (R_of_nat (NUMERAL O))).
-Proof. exact (REFL contl). Qed.
-Definition differentiable : (R -> R) -> R -> Prop := fun _115574 : R -> R => fun _115575 : R => exists l : R, diffl _115574 l _115575.
-Lemma differentiable_def : differentiable = (fun _115574 : R -> R => fun _115575 : R => exists l : R, diffl _115574 l _115575).
-Proof. exact (REFL differentiable). Qed.
 Definition fld {A : Type'} : (A -> A -> Prop) -> A -> Prop := fun _117705 : A -> A -> Prop => @GSPEC A (fun GEN_PVAR_377 : A => exists x : A, @SETSPEC A GEN_PVAR_377 (exists y : A, (_117705 x y) \/ (_117705 y x)) x).
 Lemma fld_def {A : Type'} : (@fld A) = (fun _117705 : A -> A -> Prop => @GSPEC A (fun GEN_PVAR_377 : A => exists x : A, @SETSPEC A GEN_PVAR_377 (exists y : A, (_117705 x y) \/ (_117705 y x)) x)).
 Proof. exact (REFL (@fld A)). Qed.

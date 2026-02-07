@@ -4,7 +4,8 @@ From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 From mathcomp Require Import order ssralg ssrnum boolp classical_sets.
 From mathcomp Require Import cardinality reals Rstruct_topology.
 Import preorder.Order Order.TTheory Num.Theory GRing.Theory.
-Require Export HOLLight.HOL.mappings.
+From HOLLight Require Export HOL.mappings Library.analysis Library.rstc.
+Require Export HOLLight.Examples.multiwf.
 From HB Require Import structures.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -16,21 +17,6 @@ Set Bullet Behavior "Strict Subproofs".
 (* Miscelaneous *)
 (*****************************************************************************)
 
-Definition LET {A B : Type} (f : A -> B) := f.
-
-Lemma LET_def {A B : Type'} : LET = (fun f : A -> B => fun x : A => f x).
-Proof. exact erefl. Qed.
-
-Definition LET_END {A : Type} (a : A) := a.
-
-Lemma LET_END_def {A : Type'} : LET_END = (fun t : A => t).
-Proof. exact erefl. Qed.
-
-Lemma let_clear {A B} : forall (f : A -> B) x, LET (fun x => LET_END (f x)) x = (let x := x in f x).
-Proof. reflexivity. Qed.
-
-Ltac let_clear := rewrite ?let_clear.
-
 Fixpoint seq_Union {A : Type'} (s : seq (set A)) : A -> Prop :=
   match s with
   | [::] => set0
@@ -38,17 +24,6 @@ Fixpoint seq_Union {A : Type'} (s : seq (set A)) : A -> Prop :=
 
 Lemma LIST_UNION_def {_184792 : Type'} : seq_Union = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))) -> (seq (_184792 -> Prop)) -> _184792 -> Prop) (fun LIST_UNION' : (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))) -> (seq (_184792 -> Prop)) -> _184792 -> Prop => forall _204636 : prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))), ((LIST_UNION' _204636 (@nil (_184792 -> Prop))) = (@set0 _184792)) /\ (forall h : _184792 -> Prop, forall t : seq (_184792 -> Prop), (LIST_UNION' _204636 (@cons (_184792 -> Prop) h t)) = (@setU _184792 h (LIST_UNION' _204636 t)))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 0)))))))))))))))))).
 Proof. by total_align. Qed.
-
-Lemma TC_def {A : Type'} : (@Relation_Operators.clos_trans A) = (fun R' : A -> A -> Prop => fun a0 : A => fun a1 : A => forall TC' : A -> A -> Prop, (forall a0' : A, forall a1' : A, ((R' a0' a1') \/ (exists y : A, (TC' a0' y) /\ (TC' y a1'))) -> TC' a0' a1') -> TC' a0 a1).
-Proof. ind_align. Qed.
-
-Definition MEASURE {A : Type} f (x y : A) : Prop := f x < f y.
-
-Lemma MEASURE_def {A : Type'} : (@MEASURE A) = (fun _8094 : A -> nat => fun x : A => fun y : A => ltn (_8094 x) (_8094 y)).
-Proof. exact erefl. Qed.
-
-Lemma WFP_def {_184264 : Type'} : @Acc _184264 = (fun lt2' : _184264 -> _184264 -> Prop => fun a : _184264 => forall WFP' : _184264 -> Prop, (forall a' : _184264, (forall y : _184264, (lt2' y a') -> WFP' y) -> WFP' a') -> WFP' a).
-Proof. ind_align. Qed.
 
 (*****************************************************************************)
 (* Topologies (Libraries/analysis.ml) *)
@@ -207,66 +182,6 @@ Proof.
     + by have := H0 z x y ; rewrite (r_sym z x) (r_sym z y).
   - by move=> x y ? ; rewrite (mdist_sym0 x y).
 Qed.
-
-(*****************************************************************************)
-(* Multisets *)
-(*****************************************************************************)
-
-Lemma empty_mempty_domain {A : Type} : (fun _ : A => 0 <> 0) = set0.
-Proof. by ext. Qed.
-
-Definition is_fmultiset {A : Type'} : (A -> nat) -> Prop :=
-  fun f => @finite_set A (@GSPEC A (fun GEN_PVAR_433 : A => exists a : A, @SETSPEC A GEN_PVAR_433 (~ ((f a) = (NUMERAL 0))) a)).
-
-Lemma is_fmultiset0 (A : Type') : is_fmultiset (fun (_ : A) => 0).
-Proof.
-  unfold is_fmultiset. rewrite SPEC_elim finite_setE empty_mempty_domain.
-  exact (finite'_set0 _).
-Qed.
-
-Definition Multiset (A : Type') := subtype (is_fmultiset0 A).
-
-Definition multiset {A : Type'} := mk (is_fmultiset0 A).
-Definition multiplicity {A : Type'} := dest (is_fmultiset0 A).
-
-Lemma _mk_dest_Multiset : forall {A : Type'} (a : Multiset A), (@multiset A (@multiplicity A a)) = a.
-Proof. intros. apply mk_dest. Qed.
-
-Lemma _dest_mk_Multiset : forall {A : Type'} (r : A -> nat), ((fun f : A -> nat => @finite_set A (@GSPEC A (fun GEN_PVAR_433 : A => exists a : A, @SETSPEC A GEN_PVAR_433 (~ ((f a) = (NUMERAL 0))) a))) r) = ((@multiplicity A (@multiset A r)) = r).
-Proof. intros. apply dest_mk. Qed.
-
-Definition mempty {A : Type'} : Multiset A := multiset (fun _ => 0).
-Lemma mempty_def {_183533 : Type'} : mempty = (@multiset _183533 (fun b : _183533 => NUMERAL 0)).
-Proof. reflexivity. Qed.
-
-Definition mmember {A : Type'} (a : A) (m : Multiset A) := multiplicity m a <> 0.
-Lemma mmember_def {_183543 : Type'} : mmember = (fun _203992 : _183543 => fun _203993 : Multiset _183543 => ~ ((@multiplicity _183543 _203993 _203992) = (NUMERAL 0))).
-Proof. reflexivity. Qed.
-
-Definition msing {A : Type'} : A -> Multiset A := fun a => multiset (fun a' => COND (a'=a) 1 0).
-
-Lemma msing_def {_183559 : Type'} : msing = (fun _204004 : _183559 => @multiset _183559 (fun b : _183559 => @COND nat (b = _204004) (NUMERAL (BIT1 0)) (NUMERAL 0))).
-Proof. reflexivity. Qed.
-
-Definition munion {A : Type'} := fun (m m' : Multiset A) => 
-  multiset (fun a => multiplicity m a + (multiplicity m' a)).
-
-Lemma munion_def {_183578 : Type'} : (@munion _183578) = (fun _204009 : Multiset _183578 => fun _204010 : Multiset _183578 => @multiset _183578 (fun b : _183578 => addn (@multiplicity _183578 _204009 b) (@multiplicity _183578 _204010 b))).
-Proof. reflexivity. Qed.
-
-Definition mdiff {A : Type'} := fun (m m' : Multiset A) => 
-  multiset (fun a => multiplicity m a - (multiplicity m' a)). 
-
-Lemma mdiff_def {_183597 : Type'} : (@mdiff _183597) = (fun _204021 : Multiset _183597 => fun _204022 : Multiset _183597 => @multiset _183597 (fun b : _183597 => subn (@multiplicity _183597 _204021 b) (@multiplicity _183597 _204022 b))).
-Proof. reflexivity. Qed.
-
-(* given an order relation R on A, define the order relation Rm on Multiset A by :
-   Rm m m' <-> (exists a in m, forall a' in m', a' is in m\{a} or R a a'.) *)
-Definition morder {A : Type'} : (A -> A -> Prop) -> (Multiset A) -> (Multiset A) -> Prop := 
-  fun R m m' => exists m0 a m1, (m' = munion m0 (msing a)) /\ 
-  (m = munion m0 m1) /\ forall a', mmember a' m1 -> R a' a.
-Lemma morder_def {_184446 : Type'} : (@morder _184446) = (fun _204323 : _184446 -> _184446 -> Prop => fun _204324 : Multiset _184446 => fun _204325 : Multiset _184446 => exists M0 : Multiset _184446, exists a : _184446, exists K : Multiset _184446, (_204325 = (@munion _184446 M0 (@msing _184446 a))) /\ ((_204324 = (@munion _184446 M0 K)) /\ (forall b : _184446, (@mmember _184446 b K) -> _204323 b a))).
-Proof. reflexivity. Qed.
 
 (*****************************************************************************)
 (* Aligning the type of first order terms *)

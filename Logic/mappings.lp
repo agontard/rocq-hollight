@@ -82,8 +82,6 @@ builtin "LET" ≔ LET;
 builtin "LET_def" ≔ LET_def;
 builtin "LET_END" ≔ LET_END;
 builtin "LET_END_def" ≔ LET_END_def;
-builtin "Relation_Operators.clos_trans" ≔ TC;
-builtin "TC_def" ≔ TC_def;
 builtin "MEASURE" ≔ MEASURE;
 builtin "MEASURE_def" ≔ MEASURE_def;
 builtin "o" ≔ o;
@@ -181,8 +179,6 @@ builtin "ODD_def" ≔ ODD_def;
 // wf
 builtin "well_founded" ≔ WF;
 builtin "WF_def" ≔ WF_def;
-builtin "Acc" ≔ WFP;
-builtin "WFP_def" ≔ WFP_def;
 
 // indtypes
 builtin "NUMPAIR" ≔ NUMPAIR;
@@ -574,14 +570,38 @@ builtin "_dest_tybit1" ≔ _dest_tybit1;
 builtin "axiom_39" ≔ axiom_39;
 builtin "axiom_40" ≔ axiom_40;
 
-// topology
+// Examples/rstc.ml
+builtin "Relation_Operators.clos_trans" ≔ TC;
+builtin "TC_def" ≔ TC_def;
+
+// Library/analysis.ml
+builtin "UNIONS" ≔ re_Union;
+builtin "re_Union_def" ≔ re_Union_def;
+builtin "setU" ≔ re_union;
+builtin "re_union_def" ≔ re_union_def;
+builtin "setI" ≔ re_intersect;
+builtin "re_intersect_def" ≔ re_intersect_def;
+builtin "set0" ≔ re_null;
+builtin "re_null_def" ≔ re_null_def;
+builtin "setT" ≔ re_universe;
+builtin "re_universe_def" ≔ re_universe_def;
+builtin "subset" ≔ re_subset;
+builtin "re_subset_def" ≔ re_subset_def;
+builtin "setC" ≔ re_compl;
+builtin "re_compl_def" ≔ re_compl_def;
+
+builtin "is_topology" ≔ is_topology;
+builtin "is_topology_def" ≔ is_topology_def;
 builtin "Topology" ≔ Topology;
 builtin "topology" ≔ topology;
 builtin "open" ≔ _open;
 builtin "_mk_dest_Topology" ≔ axiom_41;
 builtin "_dest_mk_Topology" ≔ axiom_42;
+builtin "neigh" ≔ neigh;
+builtin "neigh_def" ≔ neigh_def;
+builtin "tends" ≔ tends;
+builtin "tends_def" ≔ tends_def;
 
-// Metric from Library/analysis.ml
 builtin "ismet" ≔ ismet;
 builtin "ismet_def" ≔ ismet_def;
 builtin "Metric" ≔ Metric;
@@ -590,7 +610,26 @@ builtin "metric" ≔ metric;
 builtin "_mk_dest_Metric" ≔ axiom_43;
 builtin "_dest_mk_Metric" ≔ axiom_44;
 
-// multiset
+builtin "mtop" ≔ mtop;
+builtin "mtop_def" ≔ mtop_def;
+builtin "mr1" ≔ mr1;
+builtin "mr1_def" ≔ mr1_def;
+builtin "tends_num_real" ≔ tends_num_real;
+builtin "tends_num_real_def" ≔ tends_num_real_def;
+builtin "tendsto" ≔ tendsto;
+builtin "tendsto_def" ≔ tendsto_def;
+builtin "tends_real_real" ≔ tends_real_real;
+builtin "tends_real_real_def" ≔ tends_real_real_def;
+builtin "diffl" ≔ diffl;
+builtin "diffl_def" ≔ diffl_def;
+builtin "contl" ≔ contl;
+builtin "contl_def" ≔ contl_def;
+builtin "differentiable" ≔ differentiable;
+builtin "differentiable_def" ≔ differentiable_def;
+
+// multiwf.ml
+builtin "Acc" ≔ WFP;
+builtin "WFP_def" ≔ WFP_def;
 builtin "Multiset" ≔ Multiset;
 builtin "multiset" ≔ multiset;
 builtin "multiplicity" ≔ multiplicity;

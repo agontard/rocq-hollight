@@ -70,6 +70,22 @@ builtin "eq" ≔ GEQ;
 builtin "GEQ_def" ≔ GEQ_def;
 builtin "cancel2" ≔ ISO;
 builtin "ISO_def" ≔ ISO_def;
+builtin "ε" ≔ GABS;
+builtin "GABS_def" ≔ GABS_def;
+builtin "and" ≔ _UNGUARDED_PATTERN;
+builtin "_UNGUARDED_PATTERN_def" ≔ _UNGUARDED_PATTERN_def;
+builtin "False" ≔ _FALSITY_;
+builtin "_FALSITY__def" ≔ _FALSITY__def;
+builtin "True" ≔ hashek;
+builtin "hashek_def" ≔ hashek_def;
+builtin "LET" ≔ LET;
+builtin "LET_def" ≔ LET_def;
+builtin "LET_END" ≔ LET_END;
+builtin "LET_END_def" ≔ LET_END_def;
+builtin "MEASURE" ≔ MEASURE;
+builtin "MEASURE_def" ≔ MEASURE_def;
+builtin "o" ≔ o;
+builtin "o_def" ≔ o_def;
 
 // unit type
 builtin "unit" ≔ unit;

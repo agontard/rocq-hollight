@@ -159,11 +159,6 @@ Definition ismgu E subst :=
   (forall subst' : nat -> term, Unifies subst' E ->
   exists subst'' : nat -> term, termsubst subst' = termsubst subst'' \o termsubst subst).
 
-Definition o (A B C : Type') (f : B -> C) (g : A -> B) := f \o g.
-
-Lemma o_def {A B C : Type'} : (@o A B C) = (fun f : B -> C => fun g : A -> B => fun x : A => f (g x)).
-Proof. exact (REFL (@o A B C)). Qed.
-
 Lemma ismgu_def : ismgu = (fun _276290 : form -> Prop => fun _276291 : nat -> term => (Unifies _276291 _276290) /\ (Logic.all (fun j : nat -> term => (Unifies j _276290) -> ex (fun k : nat -> term => eq (termsubst j) (@o term term term (termsubst k) (termsubst _276291)))))).
 Proof. reflexivity. Qed.
 

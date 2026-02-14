@@ -59,12 +59,10 @@ Proof. exact erefl. Qed.
 Open Scope ring_scope.
 Delimit Scope ring_scope with mcR.
 
-Definition Rsup (s : set R) : R := if s = set0 then ε (fun _ => False) else sup s.
-
 Definition R_struct : structure := {|
   Real.val := R;
   Real.le := le;
-  Real.sup := Rsup;
+  Real.sup := sup;
   Real.add := add;
   Real.zero := 0;
   Real.opp := opp;
@@ -103,22 +101,16 @@ Proof. by ext ; move/eqP. Qed.
 Ltac simp_R_struct := rewrite/Real.set/Real.val/Real.le/Real.sup/Real.add/Real.zero
   /Real.opp/Real.mul/Real.one/Real.inv/R_struct/=-/R_struct-/(set R).
 
+Lemma RealdownE : @Real.down R_struct = @down _ _.
+Proof. funext => * ; exact: exists2E. Qed.
+
 Lemma R_axioms : axioms R_struct.
 Proof.
   apply Axioms.
   - exact: le_refl.
   - move/[swap]. exact: le_trans.
-  - rewrite/Real.has_sup/Real.has_ub/Real.nonempty/ub. simp_R_struct.
-    rewrite/Rsup => E [NemptE boundedE] x Ex.
-    have : E <> set0 by apply/eqP/set0P.
-    rewrite -is_False => -> ; if_triv.
-    by apply reals.ub_le_sup.
-  - rewrite/down/has_sup/has_ub/ub/nonempty. simp_R_struct.
-    rewrite/Rsup => E x [NemptE boundedE] ; if_triv by apply/eqP/set0P.
-    case (EM (exists2 y : R, E y & x <= y)) ; first tauto.
-    move/forall2NP => ubound_E_x ; right ; apply: (reals.ge_sup NemptE).
-    move => /= y ; case: (ubound_E_x y) => // +_.
-    by rewrite -R_ltNge ; move/andP=>[].
+  - exact: sup_upper_bound.
+  - simp_R_struct. rewrite RealdownE. exact: sup_total.
   - move=> *; exact: lerD.
   - rewrite eq_R_struct. exact: addrC.
   - rewrite eq_R_struct. exact: addrA.

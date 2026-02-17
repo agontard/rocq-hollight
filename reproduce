@@ -78,7 +78,7 @@ esac
 # The dependencies
 case $library in
     Real_With_N)
-        require="Stdlib.NArith.BinNat";;
+        require="Stdlib.NArith.BinNat mathcomp.classical.classical_sets";;
     Real_With_nat)
         require="mathcomp.boot.ssrnat mathcomp.boot.div mathcomp.boot.seq";;
     *)
@@ -89,7 +89,7 @@ esac
 case $library in
     Real_With_N)
         vfiles="$library/type.v $library/mappings.v"
-        mkfile="$librar/mappings.mk";;
+        mkfile="$library/mappings.mk";;
     *)
         vfiles=$library/mappings.v
         mkfile= ;;
@@ -97,8 +97,6 @@ esac
 
 base=`basename $hollight_file .ml`
 lpfile=$library/mappings.lp
-vfiles=$library/mappings.v
-mkfile=
 root_path=HOLLight.$library
 jobs='-j32'
 

@@ -1,7 +1,7 @@
 HOL-Light libraries in Rocq
 ---------------------------
 
-This [Rocq](https://coq.inria.fr/) library contains an automatic translation of the [HOL-Light](https://github.com/jrh13/hol-light) library [Multivariate/make_complex.ml](https://github.com/jrh13/hol-light/blob/master/Multivariate/make_complex.ml) with various HOL-Light types and functions [mapped](https://github.com/Deducteam/coq-hol-light/blob/main/mappings.lp) to the corresponding types and functions of the Rocq standard library so that, for instance, a HOL-Light theorem on HOL-Light real numbers is translated to a Rocq theorem on Rocq real numbers. The provided theorems can therefore be readily used within other Rocq developments based on the Rocq standard library. More types and functions need to be aligned though (see below how to contribute). The translation has been done using [hol2dk](https://github.com/Deducteam/hol2dk) to extract and translate HOL-Light proofs to Lambdapi files, and [lambdapi](https://github.com/Deducteam/lambdapi) to translate Lambdapi files to Rocq files.
+This [Rocq](https://coq.inria.fr/) library contains an automatic translation of the [HOL-Light](https://github.com/jrh13/hol-light) library [Multivariate/make_complex.ml](https://github.com/jrh13/hol-light/blob/master/Multivariate/make_complex.ml) with various HOL-Light types and functions [mapped](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.lp) to the corresponding types and functions of the Rocq standard library so that, for instance, a HOL-Light theorem on HOL-Light real numbers is translated to a Rocq theorem on Rocq real numbers. The provided theorems can therefore be readily used within other Rocq developments based on the Rocq standard library. More types and functions need to be aligned though (see below how to contribute). The translation has been done using [hol2dk](https://github.com/Deducteam/hol2dk) to extract and translate HOL-Light proofs to Lambdapi files, and [lambdapi](https://github.com/Deducteam/lambdapi) to translate Lambdapi files to Rocq files.
 
 It contains more than 20,000 theorems on arithmetic, wellfounded relations,
 lists, real numbers, integers, basic set theory, permutations, group
@@ -13,7 +13,7 @@ line integrals, etc. See HOL-Light files for more details.
 
 The translated theorems are provided as axioms in order to have a fast Require because the proofs currently extracted from HOL-Light are very big (91 Gb) and not very informative for they are low level (the translation is done at the kernel level, not at the source level). If you are skeptical, you can however generate and check them again by using the script reproduce. It however takes about 25 hours with 32 processors Intel Core i9-13950HX and 128 Gb RAM. If every thing works well, the proofs will be in the directory `tmp/output`.
 
-The types and functions currently [aligned](https://github.com/Deducteam/rocq-hollight/blob/main/Multivariate/mappings.lp) are:
+The types and functions currently [aligned](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.lp) are:
 - types: unit, prod, list, option, sum, ascii, N, R, Z
 - functions on N: pred, add, mul, pow, le, lt, ge, gt, max, min, sub, div, modulo, even, odd, factorial
 - functions on Z: IZR, le, lt, ge, gt, opp, add, sub, mul, abs, sgn, max, min, pow, div, rem, divide, coprime, gcd, lcm
@@ -26,13 +26,13 @@ Your help is welcome to align more functions!
 
 You can easily contribute by proving the correctness of more mappings in Rocq:
 
-- Look in [terms.v](https://github.com/Deducteam/rocq-hollight/blob/main/Multivariate/terms.v) for the definition of a function symbol, say f, that you want to replace; note that it is followed by a lemma f_DEF stating what f is equal to.
+- Look in [terms.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/terms.v) for the definition of a function symbol, say f, that you want to replace; note that it is followed by a lemma f_DEF stating what f is equal to.
 
-- Copy and paste in [mappings.v](https://github.com/Deducteam/rocq-hollight/blob/main/Multivariate/mappings.v) the lemma f_DEF, and try to prove it if f is replaced by your own function.
+- Copy and paste in [mappings.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.v) the lemma f_DEF, and try to prove it if f is replaced by your own function.
 
-- Create a [pull request](https://github.com/Deducteam/rocq-hollight/pulls).
+- Create a pull request.
 
-You can also propose to change the mapping of some type in [mappings.v](https://github.com/Deducteam/rocq-hollight/blob/main/Multivariate/mappings.v). Every HOL-Light type `A` is axiomatized as being isomorphic to the subset of elements `x` of some already defined type `B` that satisfies some property `p:B->Prop`. `A` can always be mapped to the Rocq type `{x:B|p(x)}` (see [init.v](https://github.com/Deducteam/rocq-hollight/blob/main/init.v)) but it is possible to map it to some more convenient type `A'` by defining two functions:
+You can also propose to change the mapping of some type in [mappings.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.v). Every HOL-Light type `A` is axiomatized as being isomorphic to the subset of elements `x` of some already defined type `B` that satisfies some property `p:B->Prop`. `A` can always be mapped to the Rocq type `{x:B|p(x)}` (see [init.v](https://anonymous.4open.science/r/rocq-hollight-127E/init.v)) but it is possible to map it to some more convenient type `A'` by defining two functions:
 
 - `mk:B->A'`
 
@@ -46,7 +46,7 @@ and proving two lemmas:
 
 showing that `A'` is isomorphic to `{x:B|p(x)}`.
 
-Note that the mappings of functions on natural numbers and lists are proved in [Real_With_nat](https://github.com/Deducteam/rocq-hollight/blob/main/Real_With_nat/).
+Note that the mappings of functions on natural numbers and lists are proved in [Real_With_nat](https://anonymous.4open.science/r/rocq-hollight-127E/Real_With_nat/).
 
 **Axioms used**
 

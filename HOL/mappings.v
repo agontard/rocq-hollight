@@ -9,7 +9,7 @@ From Equations Require Import Equations.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 From mathcomp Require Import fintype finset finfun order ssralg ssrnum matrix.
 From mathcomp Require Import interval ssrint intdiv archimedean finmap.
-From mathcomp Require Import interval_inference all_classical.
+From mathcomp Require Import interval_inference all_classical classical_sets.
 From HOLLight Require Import morepointedtypes.
 From mathcomp Require Import topology normedtype reals Rstruct_topology derive.
 From mathcomp Require Import realfun.
@@ -24,18 +24,45 @@ Unset Printing Implicit Defensive.
 Set Bullet Behavior "Strict Subproofs".
 
 (*****************************************************************************)
+(* Miscelaneous. *)
+(*****************************************************************************)
+
+Definition o (A B C : Type') (f : B -> C) (g : A -> B) := f \o g.
+
+Lemma o_def {A B C : Type'} : (@o A B C) = (fun f : B -> C => fun g : A -> B => fun x : A => f (g x)).
+Proof. exact (REFL (@o A B C)). Qed.
+
+Definition LET {A B : Type} (f : A -> B) := f.
+
+Lemma LET_def {A B : Type'} : LET = (fun f : A -> B => fun x : A => f x).
+Proof. exact erefl. Qed.
+
+Definition LET_END {A : Type} (a : A) := a.
+
+Lemma LET_END_def {A : Type'} : LET_END = (fun t : A => t).
+Proof. exact erefl. Qed.
+
+Lemma let_clear {A B} : forall (f : A -> B) x, LET (fun x => LET_END (f x)) x = (let x := x in f x).
+Proof. reflexivity. Qed.
+
+Ltac let_clear := rewrite ?let_clear.
+
+Definition MEASURE {A : Type} f (x y : A) : Prop := f x < f y.
+
+Lemma MEASURE_def {A : Type'} : (@MEASURE A) = (fun _8094 : A -> nat => fun x : A => fun y : A => ltn (_8094 x) (_8094 y)).
+Proof. exact erefl. Qed.
+
+(*****************************************************************************)
 (* Proof that Rocq's R is a fourcolor.model of real numbers. *)
 (*****************************************************************************)
 
 Open Scope ring_scope.
 Delimit Scope ring_scope with mcR.
 
-Definition Rsup (s : set R) : R := if s = set0 then ε (fun _ => False) else sup s.
-
 Definition R_struct : structure := {|
   Real.val := R;
   Real.le := le;
-  Real.sup := Rsup;
+  Real.sup := sup;
   Real.add := add;
   Real.zero := 0;
   Real.opp := opp;
@@ -57,7 +84,7 @@ Proof.
   - subst y. split ; exact: le_refl.
 Qed.
 
-Lemma R_ltNge {x y : R} : ((x < y) : Prop) = ~ (y <= x).
+Lemma R_ltNge {x y : R} : ((x < y) : Prop) = (~ (y <= x)).
 Proof.
   rewrite real_ltNge ; try exact:num_real.
   symmetry ; exact: negP**.
@@ -65,7 +92,7 @@ Qed.
 
 Lemma R_leNgt {x y : R} : (~(x < y)) = (y <= x).
 Proof.
-  rewrite R_ltNge. exact:notE.
+  rewrite R_ltNge. exact:not_notE.
 Qed.
 
 Lemma neqE {A : eqType} {x y : A} : (x <> y) = (x != y).
@@ -74,23 +101,16 @@ Proof. by ext ; move/eqP. Qed.
 Ltac simp_R_struct := rewrite/Real.set/Real.val/Real.le/Real.sup/Real.add/Real.zero
   /Real.opp/Real.mul/Real.one/Real.inv/R_struct/=-/R_struct-/(set R).
 
+Lemma RealdownE : @Real.down R_struct = @down _ _.
+Proof. funext => * ; exact: exists2E. Qed.
+
 Lemma R_axioms : axioms R_struct.
 Proof.
   apply Axioms.
   - exact: le_refl.
   - move/[swap]. exact: le_trans.
-  - rewrite/Real.has_sup/Real.has_ub/Real.nonempty/ub. simp_R_struct.
-    rewrite/Rsup => E [NemptE boundedE] x Ex.
-    have : E <> set0 by apply/eqP/set0P.
-    rewrite -is_False => -> ; if_triv.
-    by apply reals.ub_le_sup.
-  - rewrite/down/has_sup/has_ub/ub/nonempty. simp_R_struct.
-    rewrite/Rsup => E x [NemptE boundedE].
-    case (pselect (exists2 y : R, E y & x <= y)) ; first tauto.
-    move/forall2NP => ubound_E_x ; right. have : E <> set0 by apply/eqP/set0P.
-    rewrite -is_False => -> ; if_triv. apply reals.ge_sup ; first by [].
-    move => /= y ; case: (ubound_E_x y) => // +_.
-    by rewrite -R_ltNge ; move/andP=>[].
+  - exact: sup_upper_bound.
+  - simp_R_struct. rewrite RealdownE. exact: sup_total.
   - move=> *; exact: lerD.
   - rewrite eq_R_struct. exact: addrC.
   - rewrite eq_R_struct. exact: addrA.
@@ -160,14 +180,10 @@ Canonical real_struct.
 Lemma real_sup_is_lub E :
   Real.has_sup E -> ub E (real_sup E) /\ (forall b, ub E b -> real_le (real_sup E) b).
 Proof.
-  intros [i j]. unfold real_sup.
+  move=> [i j] ; rewrite/real_sup.
   case (pselect (exists x : real, E x)) ; last contradiction.
   case (pselect (exists M : real, forall x : real, E x -> real_le x M)) ; last contradiction.
-  set (Q := fun M : real =>
-              (forall x : real, E x -> real_le x M) /\
-                (forall M' : real, (forall x : real, E x -> real_le x M') -> real_le M M')).
-  have k: exists M : real, Q M by exact: (thm_REAL_COMPLETE E (conj i j)).
-  by case (ε_spec k).
+  by (ε_spec by exact (thm_REAL_COMPLETE E (conj i j))) => ? -[].
 Qed.
 
 Lemma real_sup_upper_bound E : Real.has_sup E -> ub E (real_sup E).
@@ -175,7 +191,7 @@ Proof. intro h. apply (proj1 (real_sup_is_lub h)). Qed.
 
 Lemma real_sup_total E x : Real.has_sup E -> Real.down E x \/ real_le (real_sup E) x.
 Proof.
-  intro h. case (pselect (Real.down E x)); intro k. auto. right.
+  intro h. case (EM (Real.down E x)); intro k. auto. right.
   generalize (real_sup_is_lub h); intros [i j]. apply j.
   intros y hy.
   rewrite/Real.down exists2E -forallNE in k.
@@ -427,10 +443,10 @@ Proof.
   - rewrite/hol_sqrt -(asboolb (0 <= r)%mcR).
     apply if_intro with (P := fun r' => sgr r' = sgr r /\ expr r' 2 = `|r|);
     [move=>pos_r | rewrite -R_ltNge => neg_r] ; split.
-    + case (pselect (r = 0)) => [-> | neq_r_0] ; first by rewrite sqrtr0.
+    + case (EM (r = 0)) => [-> | neq_r_0] ; first by rewrite sqrtr0.
       have spos_r : 0 < r by rewrite lt_neqAle -andP** -negP** -eqP** sym.
       by rewrite/sgr !gtr0_sg // sqrtr_gt0.
-    + rewrite/expr; case (sqrtrP r); [by rewrite R_ltNge|] => /={}r{}pos_r.
+    + rewrite/expr ; case (sqrtrP r) ; [by rewrite R_ltNge|move=>/={}r{}pos_r].
       rewrite ger0_norm ; [exact: erefl | exact: sqr_ge0].
     + rewrite/sgr ltr0_sg ; first by rewrite ltr0_sg ?RltE.
       by rewrite oppr_lt0 sqrtr_gt0 -oppr_lt0 opprK.
@@ -629,8 +645,6 @@ Qed.
 Definition congruent_modz {R : pzRingType} (a b c : R) :=
   exists k : int, b - c = a *~ k.
 
-Notation "x = y %[modz z ]" := (congruent_modz z x y) : ring_scope.
-
 Definition congruent_modzr : R -> R -> R -> Prop := congruent_modz.
 
 Lemma real_mod_def :
@@ -657,7 +671,7 @@ Definition pair_coprimez : int * int -> Prop := uncurry coprimez.
 Lemma int_coprime_def :
   pair_coprimez = (fun _29691 : prod int int => exists x : int, exists y : int, (addz (mulz (@fst int int _29691) x) (mulz (@snd int int _29691) y)) = (int_of_nat (NUMERAL (BIT1 O)))).
 Proof.
-  funext =>-[n m]. unshelve eapply (eq_trans (eq_sym (coprimezP _ _)**)). ext.
+  funext =>-[n m]. unshelve eapply (etrans (esym (coprimezP _ _)**)). ext.
   - by case=>-[/= u v] ? ; exist u v ; rewrite/mulz (mulrC m) (mulrC n).
   - by case=>u [v ?] ; exists (u,v) ; rewrite/= (mulrC u) (mulrC v).
 Qed.
@@ -725,19 +739,15 @@ Close Scope int_scope.
 (*****************************************************************************)
 
 Open Scope classical_set_scope.
-Import classical_sets.
 
-Definition IN (A : Type) (a : A) (s : set A) : Prop := in_set s a.
+(* mathcomp often uses this version over the boolean in_set *)
+Definition IN (A : Type) (a : A) (s : set A) := s a.
 
 Lemma IN_def {A : Type'} : @IN A = (fun _32317 : A => fun _32318 : A -> Prop => _32318 _32317).
-Proof.
-  exact (funext (fun a => funext (fun s => in_setE s a))).
-Qed.
+Proof. by []. Qed.
 
 Lemma EMPTY_def (A : Type') : set0 = (fun x : A => False).
-Proof.
-  ext=>x H ; inversion H.
-Qed.
+Proof. by ext ; inversion 1. Qed.
 
 Definition INSERT (A : Type) (a : A) s := a |` s.
 
@@ -759,7 +769,8 @@ Definition SETSPEC (A : Type) (x : A) P := [set x' | P /\ x=x'].
 Lemma SETSPEC_def (A : Type') : (@SETSPEC A) = (fun _32334 : A => fun _32335 : Prop => fun _32336 : A => _32335 /\ (_32334 = _32336)).
 Proof. exact erefl. Qed.
 
-(* Eliminating useless GSPEC and SETSPEC combination *)
+(* Eliminating useless GSPEC and SETSPEC combination used for syntactic sugar
+   in HOL Light *)
 Lemma SPEC_elim (A : Type') {P : A -> Prop} : GSPEC (fun x => exists x', SETSPEC x (P x') x') = P.
 Proof.
   ext=> x H. destruct H as (x', (HP , e)). now subst x'.
@@ -779,23 +790,26 @@ Proof.
   by ext=> B C x ; rewrite SPEC_elim IN_def.
 Qed.
 
-Definition UNIONS (A : Type') (s : set (set A)) :=
-  [set a | exists s0, in_set s s0 /\ in_set s0 a].
+Definition UNIONS (A : Type') (s : set (set A)) := \bigcup_(x in s) x.
+
+Lemma bigcupE T I : @bigcup T I = fun P F => [set a|exists i, P i /\ F i a].
+Proof.
+  by rewrite/bigcup => /` P F x /= ; firstorder.
+Qed.
 
 Lemma UNIONS_def (A : Type') : (@UNIONS A) = (fun _32397 : (A -> Prop) -> Prop => @GSPEC A (fun GEN_PVAR_1 : A => exists x : A, @SETSPEC A GEN_PVAR_1 (exists u : A -> Prop, (@IN (A -> Prop) u _32397) /\ (@IN A x u)) x)).
 Proof.
-  apply funext=>s. symmetry. exact SPEC_elim.
+  by funext => ? ; rewrite/UNIONS bigcupE SPEC_elim.
 Qed.
 
-Definition INTERS (A : Type') (s : set (set A)) :=
-  [set a | forall s0, in_set s s0 -> in_set s0 a].
+Definition INTERS (A : Type') (s : set (set A)) := \bigcap_(x in s) x.
 
 Lemma INTERS_def (A : Type') : @INTERS A = (fun _32414 : (A -> Prop) -> Prop => @GSPEC A (fun GEN_PVAR_3 : A => exists x : A, @SETSPEC A GEN_PVAR_3 (forall u : A -> Prop, (@IN (A -> Prop) u _32414) -> @IN A x u) x)).
 Proof.
   apply funext => E. symmetry. exact SPEC_elim.
 Qed.
 
-Definition IMAGE {A B : Type} (f : A -> B) s := [set (f x) | x in s].
+Definition IMAGE {A B : Type} (f : A -> B) s := f @` s.
 
 Lemma IMAGE_def {A B : Type'} : (@IMAGE A B) = (fun _32493 : A -> B => fun _32494 : A -> Prop => @GSPEC B (fun GEN_PVAR_7 : B => exists y : B, @SETSPEC B GEN_PVAR_7 (exists x : A, (@IN A x _32494) /\ (y = (_32493 x))) y)).
 Proof.
@@ -805,7 +819,7 @@ Qed.
 
 (* Variant *)
 Lemma SPEC_IMAGE {A B : Type'} {f : A -> B} {s : set A} :
-  GSPEC (fun x => exists x', SETSPEC x (IN x' s) (f x')) = [set (f x) | x in s].
+  GSPEC (fun x => exists x', SETSPEC x (IN x' s) (f x')) = f @` s.
 Proof. fold (IMAGE f s). now rewrite IMAGE_def SPEC_elim. Qed.
 
 Lemma DIFF_def (A : Type') : setD = (fun _32419 : A -> Prop => fun _32420 : A -> Prop => @GSPEC A (fun GEN_PVAR_4 : A => exists x : A, @SETSPEC A GEN_PVAR_4 ((@IN A x _32419) /\ (~ (@IN A x _32420))) x)).
@@ -841,12 +855,10 @@ Proof.
   by rewrite/INSERT setU0. by rewrite/INSERT setU0 in H.
 Qed.
 
-(* pattern /3= simplifies HOL_Light set objects to rocq ones in, I believe,
-   the most suitable way. Maybe it would be better for some to unfold IN
-   as the boolean predicate instead of rewriting it to the Prop one. *)
+(* pattern /3= simplifies HOL_Light set functions to rocq ones *)
 Ltac ssrsimpl3 :=
   rewrite ?SPEC_IMAGE?SPEC_elim/GSPEC/SETSPEC/DELETE/IMAGE/INTERS/UNIONS/
-  INSERT/BIT1/BIT0/NUMERAL?setU0?IN_def.
+  INSERT/BIT1/BIT0/NUMERAL?setU0/IN.
 
 (*****************************************************************************)
 (* Finite sets. *)
@@ -873,8 +885,7 @@ Lemma finite_setE (A : Type') : finite_set = @finite' A.
 Proof. by symmetry ; rewrite FINITE_def ; ind_align. Qed.
 
 (* Version using lists *)
-Open Scope list_scope.
-Definition set_of_list (A : Type') (l : seq A) : A -> Prop := [set` l].
+Definition set_of_seq (A : Type') (s : seq A) : A -> Prop := [set` s].
 
 Lemma set_cons (A : Type') (a : A) (s : seq A) :
   [set` a::s] = a |` [set` s].
@@ -886,18 +897,18 @@ Proof.
   - by rewrite Hxl Bool.orb_comm.
 Qed.
 
-Lemma set_of_list_def (A : Type') : (@set_of_list A) = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))))) -> (list A) -> A -> Prop) (fun set_of_list' : (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))))) -> (list A) -> A -> Prop => forall _56425 : prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))), ((set_of_list' _56425 (@nil A)) = (@set0 A)) /\ (forall h : A, forall t : list A, (set_of_list' _56425 (@cons A h t)) = (@INSERT A h (set_of_list' _56425 t)))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 O)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O))))))))))))))))))).
+Lemma set_of_list_def (A : Type') : (@set_of_seq A) = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))))) -> (seq A) -> A -> Prop) (fun set_of_list' : (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))))) -> (seq A) -> A -> Prop => forall _56425 : prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))), ((set_of_list' _56425 (@nil A)) = (@set0 A)) /\ (forall h : A, forall t : seq A, (set_of_list' _56425 (@cons A h t)) = (@INSERT A h (set_of_list' _56425 t)))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))))) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))))) (NUMERAL (BIT1 (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat (prod nat nat)))))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT1 (BIT1 (BIT1 (BIT1 (BIT0 (BIT1 O)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 O)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 O)))))))) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 O))))))))))))))))))).
 Proof.
   by move=>/3= ; total_align; first apply set_nil ; last apply set_cons.
 Qed.
 
 (* Can be usefull for some finiteness proofs. *)
 Lemma finite_seqE {T : eqType} A :
-   finite_set A = exists s : list T, A = [set` s].
+   finite_set A = exists s : seq T, A = [set` s].
 Proof. apply propext ; exact (finite_seqP A). Qed.
 
-Lemma finite_witness (A : Type') (l : list A) (s : set A) : s = [set` l] -> finite_set s.
-Proof. by rewrite/set_of_list=>->. Qed.
+Lemma finite_witness (A : Type') (s : seq A) (S : set A) : S = [set` s] -> finite_set S.
+Proof. by move=>->. Qed.
 
 Arguments finite_witness {_} _.
 
@@ -908,9 +919,9 @@ Proof.
   - by rewrite in_cons ; case:H=>[-> | ?] ; apply/orP ; auto.
 Qed.
 
-Lemma uniq_NoDup (A : eqType) (l : list A) : uniq l = NoDup l :> Prop.
+Lemma uniq_NoDup (A : eqType) (s : seq A) : uniq s = NoDup s :> Prop.
 Proof.
-  ext ; elim:l=>[|a l IHl] //= H.
+  ext ; elim:s=>[|a s IHs] //= H.
   - by apply NoDup_nil.
   - apply NoDup_cons ; move/andP:H ; last by move=>[_ H] ; auto.
     by rewrite -in_In =>[[H _]] ; apply/negP.
@@ -918,35 +929,33 @@ Proof.
     by apply/negP ; rewrite in_In.
 Qed.
 
-Definition list_of_set (A : Type') (s : set A) : list A :=
+Definition seq_of_set (A : Type') (s : set A) : seq A :=
   ε (fun s' : seq A => [set` s'] = s /\ uniq s').
 
-Notation "[ 'list' 'of' s ]" := (list_of_set s) (format "[ 'list'  'of'  s ]") : classical_set_scope.
+Notation "[ 'seq' 'of' s ]" := (seq_of_set s) (format "[ 'seq'  'of'  s ]") : classical_set_scope.
 
-Lemma list_of_set_spec (A:Type') (s : set A) (H : finite_set s):
-  [set` [list of s]] = s /\ uniq (list_of_set s).
+Lemma seq_of_set_spec (A:Type') (s : set A) (H : finite_set s):
+  [set` [seq of s]] = s /\ uniq (seq_of_set s).
 Proof.
-  rewrite finite_setE in H ; rewrite/list_of_set.
-  match goal with [|- [set` (ε ?Q)] = _ /\ _] => have ex : exists l, Q l end.
-  - elim: {s}H => [|s a _ [l [<- ndl]]]; first by exists nil; rewrite set_nil.
-    case: (EM (a \in l))=>H.
-    + exists l ; split ; last by assumption.
-      by rewrite predeqP =>x /= ; split ; first auto ; last move=>[->|].
-    + exists (a::l) ; rewrite set_cons ; split ; first by [].
-      by rewrite cons_uniq -andP** -negP**.
-  - exact (ε_spec ex).
+  rewrite finite_setE in H ; rewrite/seq_of_set ; ε_spec ; last by [].
+  elim: {s}H => [|S a _ [s [<- nds]]]; first by exists nil; rewrite set_nil.
+  case: (EM (a \in s))=>H.
+  - exists s ; split ; last by assumption.
+    by rewrite predeqP =>x /= ; split ; first auto ; last move=>[->|].
+  - exists (a::s) ; rewrite set_cons ; split ; first by [].
+    by rewrite cons_uniq -andP** -negP**.
 Qed.
 
-Lemma In_list_of_set (A:Type') (s : set A) :
-  finite_set s -> forall x, In x [list of s] = s x.
+Lemma In_seq_of_set (A:Type') (s : set A) :
+  finite_set s -> forall x, In x [seq of s] = s x.
 Proof.
-  by move=>fin_s x ; rewrite -{2}(proj1 (list_of_set_spec fin_s)) -in_In.
+  by move=>fin_s x ; rewrite -{2}(proj1 (seq_of_set_spec fin_s)) -in_In.
 Qed.
 
-Lemma list_of_set0 (A:Type') (s : set A) : (s = set0) -> ([list of s] = nil).
+Lemma seq_of_set0 (A:Type') (s : set A) : (s = set0) -> ([seq of s] = nil).
 Proof.
-  move: (list_of_set_spec (finite_set0 A)) => [e _] ->.
-  destruct (list_of_set set0) as [|a l] ; first by reflexivity.
+  move: (seq_of_set_spec (finite_set0 A)) => [e _] ->.
+  destruct (seq_of_set set0) as [|a l] ; first by reflexivity.
   rewrite set_cons setU_eq0 in e.
   have contra : set0 a by move:e=>[<- _] ; reflexivity.
   by inversion contra.
@@ -966,7 +975,7 @@ Proof.
   apply False_rec. rewrite <- h. left. reflexivity.
 
   intros e n n'. inversion n; inversion n'; subst.
-  destruct (pselect (a = a0)).
+  destruct (EM (a = a0)).
 
   (* case a = a0 *)
   subst a0. apply perm_skip. apply IHl.
@@ -998,26 +1007,26 @@ Proof.
   contradiction. exact j.
 Qed.
 
-Lemma list_of_setU1 {A:Type'} (a:A) {s} :
-  finite_set s -> exists l', Permutation l' (a :: [list of s]) /\
-                     [list of a |` s] = if s a then [list of s] else l'.
+Lemma seq_of_setU1 {A:Type'} (a:A) {S} :
+  finite_set S -> exists s, Permutation s (a :: [seq of S]) /\
+                     [seq of a |` S] = if S a then [seq of S] else s.
 Proof.
   intro H.
-  exists (if s a then a :: [list of s] else [list of a |` s]).
+  exists (if S a then a :: [seq of S] else [seq of a |` S]).
   if_intro=>H' ; split ; auto.
   - f_equal. rewrite setUidr. reflexivity. now intros _ ->.
   - apply eq_mod_permut.
-    + intro x. rewrite In_list_of_set.
+    + intro x. rewrite In_seq_of_set.
       ext. inversion 1 as [->|]. 3 : intros [i | i].
       * now left.
-      * right. now rewrite In_list_of_set.
+      * right. now rewrite In_seq_of_set.
       * left. now symmetry.
-      * right. now rewrite <- In_list_of_set.
+      * right. now rewrite <- In_seq_of_set.
       * rewrite -> finite_setE in *. now apply finite'_setU1.
-    + rewrite -uniq_NoDup. apply list_of_set_spec. rewrite -> finite_setE in *.
+    + rewrite -uniq_NoDup. apply seq_of_set_spec. rewrite -> finite_setE in *.
       exact: finite'_setU1.
-    + apply NoDup_cons. now rewrite In_list_of_set.
-      rewrite -uniq_NoDup. now apply list_of_set_spec.
+    + apply NoDup_cons. now rewrite In_seq_of_set.
+      rewrite -uniq_NoDup. now apply seq_of_set_spec.
 Qed.
 
 Definition ITSET {A B : Type'} : (A -> B -> B) -> (A -> Prop) -> B -> B := fun _43025 : A -> B -> B => fun _43026 : A -> Prop => fun _43027 : B => @ε ((A -> Prop) -> B) (fun g : (A -> Prop) -> B => ((g (@set0 A)) = _43027) /\ (forall x : A, forall s : A -> Prop, (@finite_set A s) -> (g (@INSERT A x s)) = (@COND B (@IN A x s) (g s) (_43025 x (g s))))) _43026.
@@ -1026,10 +1035,10 @@ Definition permut_inv {A B:Type} (f:A -> B -> B) :=
   forall b y x, f x (f y b) = f y (f x b).
 
 Definition fold_set {A B:Type'} (f : A -> B -> B) (s : set A) (b : B) :=
-  if permut_inv f /\ finite_set s then fold_right f b [list of s] else ITSET f s b.
+  if permut_inv f /\ finite_set s then foldr f b [seq of s] else ITSET f s b.
 
-Lemma permut_inv_fold_right {A B : Type} {f : A -> B -> B} {b : B} {l : list A} l' :
-  Permutation l l' -> permut_inv f -> fold_right f b l = fold_right f b l'.
+Lemma permut_inv_fold_right {A B : Type} {f : A -> B -> B} {b : B} {s : seq A} s' :
+  Permutation s s' -> permut_inv f -> foldr f b s = foldr f b s'.
 Proof.
   intros H H'. induction H.
   - reflexivity.
@@ -1045,8 +1054,8 @@ Proof.
   rewrite/fold_set/ITSET. ext=> f s b.
   case (EM (permut_inv f))=> ? ; last by if_triv by easy.
   revert s. align_ε_if.
-  - split. now rewrite list_of_set0. intros a E H'. unfold INSERT.
-    destruct (list_of_setU1 a H') as (l, (Hl, ->))=> /3= /c` H.
+  - split. now rewrite seq_of_set0. intros a E H'. unfold INSERT.
+    destruct (seq_of_setU1 a H') as (l, (Hl, ->))=> /3= /c` H.
     reflexivity. now rewrite (permut_inv_fold_right Hl).
   - rewrite finite_setE. intros f' (HEmpty,HINSERT) (HEmpty', HINSERT') E (_, Hfin).
     induction Hfin. now rewrite HEmpty HEmpty'.
@@ -1064,26 +1073,26 @@ Proof. by []. Qed.
 Definition CARD (A : Type') (s : set A) :=
   if finite_set s then (#|` fset_set s|) else CARD_HOL s.
 
-Lemma in_fset_list {A : Type'} (l : list A) :
-  [fset x in l] =i l.
+Lemma in_fset_seq {A : Type'} (s : seq A) :
+  [fset x in s] =i s.
 Proof.
-  by elim:l=>[|a l IHl] x /= ; rewrite !in_fset_.
+  by elim:s=>[|a s IHs] x /= ; rewrite !in_fset_.
 Qed.
 
-Lemma fset_set_list {A : Type'} (l : list A) :
-  fset_set [set` l] = [fset x in l].
+Lemma fset_set_seq {A : Type'} (s : seq A) :
+  fset_set [set` s] = [fset x in s].
 Proof.
-  apply fsetP=>x ; rewrite in_fset_set ; last by apply (finite_witness l).
-  by rewrite in_fset_list mem_setE.
+  apply fsetP=>x ; rewrite in_fset_set ; last by apply (finite_witness s).
+  by rewrite in_fset_seq mem_setE.
 Qed.
 
 Lemma CARD_def (A : Type') : (@CARD A) = (fun _43228 : A -> Prop => @fold_set A nat (fun x : A => fun n : nat => S n) _43228 (NUMERAL O)).
 Proof.
-  rewrite/3=/CARD/fold_set; ext=>s ; if_intro =>fin_s ; last by [].
+  rewrite/3=/CARD/fold_set => /` S /c` fin_S ; last by [].
   if_triv using permut_inv_succ.
-  move:(list_of_set_spec fin_s)=>[eq nd] ; rewrite -{1}eq.
-  rewrite fset_set_list card_fseq undup_id ; last by [].
-  by elim:[list of s] => [|a l IHl] ; last (simpl ; f_equal).
+  move:(seq_of_set_spec fin_S)=>[eq nd] ; rewrite -{1}eq.
+  rewrite fset_set_seq card_fseq undup_id ; last by [].
+  by elim:[seq of S] => [|a s IHs] ; last (simpl ; f_equal).
 Qed.
 
 Definition dimindex (A : Type') (_ : set A) :=
@@ -1099,14 +1108,14 @@ Proof.
 Qed.
 
 (* seq_fset seems intended only for internal use in mathcomp but has useful results. *)
-Lemma fset_set_seq_fset (A: Type') (l : list A) : [fset x in l] = seq_fset tt l.
+Lemma fset_set_seq_fset (A: Type') (s : seq A) : [fset x in s] = seq_fset tt s.
 Proof.
-  by apply fsetP=>x ; rewrite in_fset_list seq_fsetE.
+  by apply fsetP=>x ; rewrite in_fset_seq seq_fsetE.
 Qed.
 
-Lemma CARD_set_of_list (A : Type') (l : list A) : CARD [set` l] = size (undup l).
+Lemma CARD_set_of_seq (A : Type') (l : seq A) : CARD [set` l] = size (undup l).
 Proof.
-  rewrite/CARD fset_set_list fset_set_seq_fset ; if_triv using (finite_witness l).
+  rewrite/CARD fset_set_seq fset_set_seq_fset ; if_triv using (finite_witness l).
   exact: size_seq_fset.
 Qed.
 
@@ -1117,17 +1126,17 @@ Proof.
   by elim: (size s) (size (undup s))=> [[] | ? ? []].
 Qed.
 
-Lemma list_of_set_def (A : Type') : (@list_of_set A) = (fun _56426 : A -> Prop => @ε (list A) (fun l : list A => ((@set_of_list A l) = _56426) /\ ((@size A l) = (@CARD A _56426)))).
+Lemma list_of_set_def (A : Type') : (@seq_of_set A) = (fun _56426 : A -> Prop => @ε (seq A) (fun l : seq A => ((@set_of_seq A l) = _56426) /\ ((@size A l) = (@CARD A _56426)))).
 Proof.
-  rewrite/list_of_set/set_of_list=> /` s ; f_equal=> /` l [<- Hl] ; split=>//.
-  all : by move:Hl ; rewrite size_undup_uniq CARD_set_of_list -eqP**=> ->.
+  rewrite/seq_of_set/set_of_seq=> /` S ; f_equal=> /` s [<- Hs] ; split=>//.
+  all : by move:Hs ; rewrite size_undup_uniq CARD_set_of_seq -eqP**=> ->.
 Qed.
 
 (* Could be useful for cardinal proofs. *)
-Lemma CARD_witness {A : Type'} (l : list A) (s : set A) (n : nat) : s = [set` l] ->
-  n = size (undup l) -> CARD s = n.
+Lemma CARD_witness {A : Type'} (s : seq A) (S : set A) (n : nat) : S = [set` s] ->
+  n = size (undup s) -> CARD S = n.
 Proof.
-  by move=>->-> ; apply CARD_set_of_list.
+  by move=>->-> ; apply CARD_set_of_seq.
 Qed.
 
 Arguments CARD_witness {_} _.
@@ -1148,8 +1157,8 @@ Proof. by []. Qed.
 
 (* Add rewriting dotdotE to pattern /3=. *)
 Ltac ssrsimpl3 ::=
-  rewrite ?SPEC_IMAGE?SPEC_elim/GSPEC/SETSPEC/DELETE/IMAGE/INTERS/UNIONS/
-  INSERT/BIT1/BIT0/NUMERAL?setU0?IN_def?dotdotE.
+  rewrite ?SPEC_elim?SPEC_IMAGE/GSPEC/SETSPEC/DELETE/IMAGE/INTERS/UNIONS/
+  INSERT/BIT1/BIT0/NUMERAL?setU0/IN?dotdotE.
 
 Lemma dotdot_def : dotdot = (fun _66922 : nat => fun _66923 : nat => @GSPEC nat (fun GEN_PVAR_231 : nat => exists x : nat, @SETSPEC nat GEN_PVAR_231 ((leqn _66922 x) /\ (leqn x _66923)) x)).
 Proof. by funext=> * /3= ; rewrite/leqn andP**. Qed.
@@ -1182,7 +1191,7 @@ Proof.
   case=> k ink. rewrite/dest_enum/mk_enum.
   case (pselect (inhabits (Ordinal ink).+1)) ; last by rewrite/inhabits/3=.
   move=> ink' ; move:{ink'}(inhabits_to_ord ink').
-  rewrite -pred_Sn => ? ; f_equal ; exact: proof_irrelevance.
+  rewrite -pred_Sn => ? ; f_equal ; exact: Prop_irrelevance.
 Qed.
 
 Lemma dest_mk_enum : forall k : nat, inhabits k = (dest_enum (mk_enum k) = k).
@@ -1199,8 +1208,8 @@ Arguments dest_enum {_} _.
 Arguments mk_dest_enum {_} _.
 
 (*****************************************************************************)
-(* Cart.finite_image: natural numbers between 1 and the CARDinal of A,
-if A is finite, and 1 otherwise. *)
+(* Cart.finite_image: natural numbers between 1 and the cardinal of A,       *)
+(* if A is finite, and 1 otherwise.                                          *)
 (*****************************************************************************)
 
 Lemma finite_image_gen (A : Type') : 0 < dimindex [set: A].
@@ -1314,7 +1323,7 @@ Definition dest_finite_diff A B := dest_enum (finite_diff_key A B).
 Definition axiom_33 A B : forall a : finite_diff A B, (@mk_finite_diff A B (@dest_finite_diff A B a)) = a :=
   mk_dest_enum (finite_diff_key A B).
 
-Lemma ltn1 n : n < 1 = (n == 0).
+Lemma ltn1 n : (n < 1) = (n == 0).
 Proof. by case: n. Qed.
 
 Lemma axiom_34 A B : forall r : nat, ((fun x : nat => @IN nat x (dotdot (NUMERAL (BIT1 0)) (@COND nat (ltn (@dimindex B [set: B]) (@dimindex A [set: A])) (subn (@dimindex A [set: A]) (@dimindex B [set: B])) (NUMERAL (BIT1 0))))) r) = ((@dest_finite_diff A B (@mk_finite_diff A B r)) = r).
@@ -1426,10 +1435,9 @@ Proof. exact (REFL (@monoidal A)). Qed.
 
 Lemma add_monoidal (M : nmodType) : @monoidal M%' +%R.
 Proof.
-  repeat split => * ; [exact: addrC | exact: addrA |].
-  rewrite/neutral ; have N0: exists x : M, forall y, (x+y = y /\ y+x = y)%mcR.
-  - by exists 0%R => ? ; rewrite addr0 add0r.
-  - by apply (@ε_spec M%' _ N0).
+  do! split ; [exact: addrC | exact: addrA | move=> x].
+  rewrite/neutral ; ε_spec by exists 0%R => ? ; rewrite addr0 add0r.
+  by move=> ? /[spec x] -[].
 Qed.
 
 Definition support {A B : Type'} (prod : B -> B -> B) (f : A -> B) (s : set A) :=
@@ -1459,7 +1467,7 @@ Defined.
 Lemma inord_lt n m (ltnSm : n < m.+1) : inord n = Ordinal ltnSm.
 Proof.
   rewrite/inord/insubd/oapp/insub/Sub ; case (@idP (n < m.+1)) => //= ?.
-  f_equal ; exact: proof_irrelevance.
+  f_equal ; exact: Prop_irrelevance.
 Qed.
 
 Lemma inord_gt n m (gtnm : m < n) : inord n = ord0 :> 'I_m.+1.
@@ -1477,7 +1485,7 @@ Qed.
 Lemma coord_ord (A : Type') n (M : 'rV[A]_n) (m : 'I_n) :
   coord M m = M ord0 m.
 Proof.
-  rewrite coordE ; case:m=>* ; do 2 f_equal ; exact: proof_irrelevance.
+  rewrite coordE ; case:m=>* ; do 2 f_equal ; exact: Prop_irrelevance.
 Qed.
 
 (* HOL Light takes coordinates starting at 1. *)
@@ -1493,404 +1501,5 @@ Proof.
     rewrite -2!ltnNge ltnS leqn0 ; case.
     + move/eqP=> -> /= ; f_equal ; exact: inord_lt.
     + move=> ltSmn ; rewrite inord_gt ; last by elim:n ltSmn.
-      rewrite/ord0 ; do 2 f_equal ; exact:proof_irrelevance.
+      rewrite/ord0 ; do 2 f_equal ; exact:Prop_irrelevance.
 Qed.
-
-(*  !!! TODO: move somewhere, alignment of Libraries/analysis.ml !!!
-
-(*****************************************************************************)
-(* Disambiguate mathcomp and stdlib notations for reals. *)
-(*****************************************************************************)
-
-Delimit Scope ring_scope with mcR.
-
-Delimit Scope R_scope with coqR.
-
-Lemma R1E : (Rdefinitions.IZR (BinNums.Zpos BinNums.xH)) = 1%mcR.
-Proof. by []. Qed.
-
-Lemma R0E : (Rdefinitions.IZR BinNums.Z0) = 0%mcR.
-Proof. by []. Qed.
-
-Lemma RltE : Rlt = Order.lt.
-Proof. by ext=>* ; apply/RltP. Qed.
-
-Lemma RleE: Rle = Order.le.
-Proof. by ext=>* ; apply/RleP. Qed.
-
-Definition coqRE :=
-  (R0E, R1E, INRE, IZRposE, RabsE, RltE, RleE,
-    RinvE, RoppE, RdivE, RminusE, RplusE, RmultE, RpowE, RsqrtE).
-
-
-(*****************************************************************************)
-(* Topologies (Libraries/analysis.ml) *)
-(*****************************************************************************)
-
-Definition re_Union {A : Type'} : ((A -> Prop) -> Prop) -> A -> Prop := fun _114505 : (A -> Prop) -> Prop => fun x : A => exists s : A -> Prop, (_114505 s) /\ (s x).
-Lemma re_Union_def {A : Type'} : (@re_Union A) = (fun _114505 : (A -> Prop) -> Prop => fun x : A => exists s : A -> Prop, (_114505 s) /\ (s x)).
-Proof. exact (REFL (@re_Union A)). Qed.
-Definition re_union {A : Type'} : (A -> Prop) -> (A -> Prop) -> A -> Prop := fun _114510 : A -> Prop => fun _114511 : A -> Prop => fun x : A => (_114510 x) \/ (_114511 x).
-Lemma re_union_def {A : Type'} : (@re_union A) = (fun _114510 : A -> Prop => fun _114511 : A -> Prop => fun x : A => (_114510 x) \/ (_114511 x)).
-Proof. exact (REFL (@re_union A)). Qed.
-Definition re_intersect {A : Type'} : (A -> Prop) -> (A -> Prop) -> A -> Prop := fun _114522 : A -> Prop => fun _114523 : A -> Prop => fun x : A => (_114522 x) /\ (_114523 x).
-Lemma re_intersect_def {A : Type'} : (@re_intersect A) = (fun _114522 : A -> Prop => fun _114523 : A -> Prop => fun x : A => (_114522 x) /\ (_114523 x)).
-Proof. exact (REFL (@re_intersect A)). Qed.
-Definition re_null {A : Type'} : A -> Prop := fun x : A => False.
-Lemma re_null_def {A : Type'} : (@re_null A) = (fun x : A => False).
-Proof. exact (REFL (@re_null A)). Qed.
-Definition re_universe {A : Type'} : A -> Prop := fun x : A => True.
-Lemma re_universe_def {A : Type'} : (@re_universe A) = (fun x : A => True).
-Proof. exact (REFL (@re_universe A)). Qed.
-Definition re_subset {A : Type'} : (A -> Prop) -> (A -> Prop) -> Prop := fun _114534 : A -> Prop => fun _114535 : A -> Prop => forall x : A, (_114534 x) -> _114535 x.
-Lemma re_subset_def {A : Type'} : (@re_subset A) = (fun _114534 : A -> Prop => fun _114535 : A -> Prop => forall x : A, (_114534 x) -> _114535 x).
-Proof. exact (REFL (@re_subset A)). Qed.
-Definition re_compl {A : Type'} : (A -> Prop) -> A -> Prop := fun _114546 : A -> Prop => fun x : A => ~ (_114546 x).
-Lemma re_compl_def {A : Type'} : (@re_compl A) = (fun _114546 : A -> Prop => fun x : A => ~ (_114546 x)).
-Proof. exact (REFL (@re_compl A)). Qed.
-
-
-Definition istopology {A : Type'} : ((A -> Prop) -> Prop) -> Prop := fun _114555 : (A -> Prop) -> Prop => (_114555 (@re_null A)) /\ ((_114555 (@re_universe A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114555 a) /\ (_114555 b)) -> _114555 (@re_intersect A a b)) /\ (forall P : (A -> Prop) -> Prop, (@re_subset (A -> Prop) P _114555) -> _114555 (@re_Union A P)))).
-Lemma istopology_def {A : Type'} : (@istopology A) = (fun _114555 : (A -> Prop) -> Prop => (_114555 (@re_null A)) /\ ((_114555 (@re_universe A)) /\ ((forall a : A -> Prop, forall b : A -> Prop, ((_114555 a) /\ (_114555 b)) -> _114555 (@re_intersect A a b)) /\ (forall P : (A -> Prop) -> Prop, (@re_subset (A -> Prop) P _114555) -> _114555 (@re_Union A P))))).
-Proof. exact (REFL (@istopology A)). Qed.
-
-Record Topology (A : Type') := {
-  opens : set (set A) ;
-  opens_empty : opens set0;
-  opens_full : opens setT;
-  opens_I : forall s s', opens s -> opens s' -> opens (s `&` s');
-  opens_U : forall S, S `<=` opens -> opens (\bigcup_(s in S) s) }.
-
-
-Definition discrete_Topology A : Topology A.
-Proof.
-  by exists setT.
-Defined.
-
-HB.instance Definition _ A := is_Type' (discrete_Topology A).
-
-Definition topology {A : Type'} : ((A -> Prop) -> Prop) -> Topology A :=
-  finv (@opens A).
-
-Lemma _mk_dest_Topology : forall {A : Type'} (a : Topology A), (@topology A (@opens A a)) = a.
-Proof.
-  _mk_dest_record.
-Qed.
-
-Lemma andE b b' : b && b' = (b /\ b') :> Prop.
-Proof. by ext ; move/andP. Qed.
-
-Lemma re_intersect_eq {A} : @re_intersect A = setI.
-Proof.
-  funext => s0 s1 a ; rewrite -(in_setE (s0 `&` s1)) in_setI.
-  by rewrite andE 2!in_setE.
-Qed.
-
-Lemma re_Union_eq {A} S : @re_Union A S = \bigcup_(s in S) s.
-Proof.
-  by rewrite/bigcup/mkset/re_Union ; funext => a ; rewrite exists2E.
-Qed.
-
-Lemma _dest_mk_Topology : forall {A : Type'} (r : (A -> Prop) -> Prop), ((fun t : (A -> Prop) -> Prop => @istopology A t) r) = ((@opens A (@topology A r)) = r).
-Proof.
-  _dest_mk_record.
-  - record_exists {| opens := r |}.
-    by rewrite -re_Union_eq ; auto.
-  - by rewrite re_Union_eq ; auto.
-Qed.
-
-Definition toTopology (T : ptopologicalType) : Topology T.
-Proof.
-  exists open.
-  - exact open0.
-  - exact openT.
-  - exact openI.
-  - move=> S Sopen. by apply bigcup_open.
-Defined.
-
-Definition neigh {A : Type'} : (Topology A) -> (prod (A -> Prop) A) -> Prop := fun T : Topology A => fun c : prod (A -> Prop) A => exists P : A -> Prop, (@opens A T P) /\ ((@re_subset A P (@fst (A -> Prop) A c)) /\ (P (@snd (A -> Prop) A c))).
-Lemma neigh_def {A : Type'} : (@neigh A) = (fun T : Topology A => fun c : prod (A -> Prop) A => exists P : A -> Prop, (@opens A T P) /\ ((@re_subset A P (@fst (A -> Prop) A c)) /\ (P (@snd (A -> Prop) A c)))).
-Proof. exact (REFL (@neigh A)). Qed.
-
-Lemma neigh_align (T : ptopologicalType) : forall x s, nbhs x s = neigh (toTopology T) (s,x).
-Proof.
-  move=> x s ; rewrite nbhsE/neigh/open_nbhs mksetE exists2E.
-  ext => [[s' [[open_s' s'_x] s'_s]] | [s' [open_s' [s'_x s'_s]]]] ; exists s' ; repeat split => //.
-Qed.
-
-Definition tends {A B : Type'} : (B -> A) -> A -> (prod (Topology A) (B -> B -> Prop)) -> Prop :=
-  fun f : B -> A => fun l : A => fun c : prod (Topology A) (B -> B -> Prop) =>
-  let T := fst c in let R := snd c in
-   forall N' : A -> Prop, neigh T (N',l) -> exists n : B, R n n /\ forall m : B, R m n -> N' (f m).
-Lemma tends_def {A B : Type'} : (@tends A B) = (fun f : B -> A => fun l : A => fun c : prod (Topology A) (B -> B -> Prop) => forall N' : A -> Prop, (@neigh A (@fst (Topology A) (B -> B -> Prop) c) (@pair (A -> Prop) A N' l)) -> exists n : B, (@snd (Topology A) (B -> B -> Prop) c n n) /\ (forall m : B, (@snd (Topology A) (B -> B -> Prop) c m n) -> N' (f m))).
-Proof. exact (REFL (@tends A B)). Qed.
-
-(*****************************************************************************)
-(* Metric spaces (Libraries/analysis.ml) *)
-(*****************************************************************************)
-(* Difference with Rocq : Base is an argument instead of a projection *)
-
-(* Cannot manage to map to a subtype of Metric_Space : Universe Inconsistency *)
-Unset Implicit Arguments.
-Definition discrete_metric A (c : prod A A) : R := if (fst c=snd c) then 0%R else 1%R.
-
-Lemma discr_pos A : forall x y : A, (discrete_metric A (x,y) >= 0)%R.
-Proof.
-  intros. unfold discrete_metric. if_intro. reflexivity.
-  left. exact Rlt_0_1.
-Qed.
-
-Lemma discr_sym A : forall x y : A, discrete_metric A (x,y) = discrete_metric A (y,x).
-Proof.
-  intros. unfold discrete_metric. do 2 if_intro.
-  1,4 : reflexivity.
-  intros nH H. 2 : intros H nH.
-  all : symmetry in H ; destruct (nH H).
-Qed.
-
-Lemma discr_refl A : forall x y, discrete_metric A (x,y) = 0%R <-> x = y.
-Proof.
-  intros. unfold discrete_metric. if_intro;split;intro F;auto.
-  destruct (R1_neq_R0 F). contradiction.
-Qed.
-
-Lemma discr_tri A : forall x y z,
-  (discrete_metric A (x,y) <= discrete_metric A (x,z) + discrete_metric A (z,y))%R.
-Proof.
-  intros. unfold discrete_metric. do 3 if_intro;try lra.
-  intros eq1 eq2 neq. destruct (neq (eq_trans eq2 eq1)).
-Qed.
-
-Set Implicit Arguments.
-
-Record Metric (A : Type) := { mdist : prod A A -> R;
-    mdist_pos : forall x y : A, (mdist (x,y) >= 0)%R;
-    mdist_sym : forall x y : A, mdist (x,y) = mdist (y,x);
-    mdist_refl : forall x y : A, mdist (x,y) = 0%R <-> x = y;
-    mdist_tri : forall x y z : A, (mdist (x,y) <= mdist (x,z) + mdist (z,y))%R }.
-
-Definition discrete (A : Type) :=
-  {| mdist := discrete_metric A;
-     mdist_pos := discr_pos A;
-     mdist_sym := discr_sym A;
-     mdist_refl := discr_refl A;
-     mdist_tri := discr_tri A |}.
-
-HB.instance Definition _ (A : Type) := is_Type' (discrete A).
-
-Definition metric {A : Type'} := finv (@mdist A).
-
-Lemma _mk_dest_Metric : forall {A : Type'} (a : Metric A), (@metric A (@mdist A a)) = a.
-Proof.
-  _mk_dest_record.
-Qed.
-
-Definition ismet {A : Type'} : (prod A A -> R) -> Prop := fun d =>
-  (forall x y, d (x,y) = 0%R <-> x=y) /\
-  forall x y z : A, (d (y,z) <= d (x,y) + d (x,z))%R.
-
-Lemma ismet_def {A : Type'} : (@ismet A) = (fun _114640 : (prod A A) -> R => (forall x : A, forall y : A, ((_114640 (@pair A A x y)) = (R_of_nat (NUMERAL O))) = (x = y)) /\ (forall x : A, forall y : A, forall z : A, ler (_114640 (@pair A A y z)) (Rplus (_114640 (@pair A A x y)) (_114640 (@pair A A x z))))).
-Proof.
-  ext 1 =>d. unfold ismet. f_equal;auto.
-  ext=>H ; intros. now apply propext.
-  now rewrite H.
-Qed.
-
-Ltac d0 d x := (* automatically replaces all bound instances of d (x,x) with 0 assuming
-                  mdist_refl is in the context. *)
-  replace (d (x,x)) with (0%R) in * ; [ idtac
-  | lazymatch goal with H : forall x y, d (x,y) = 0%R <-> x=y |- 0%R = d (x,x) =>
-      symmetry ; now apply H end].
-
-Lemma _dest_mk_Metric : forall {A : Type'} (r : (prod A A) -> R), ((fun m : (prod A A) -> R => @ismet A m) r) = ((@mdist A (@metric A r)) = r).
-Proof.
-  _dest_mk_record.
-  - record_exists {| mdist := r |}.
-    + specialize (H0 x y y). d0 r y. lra.
-    + assert (H1 := H0 y x y). specialize (H0 x y x). d0 r y. d0 r x. lra.
-    + assert (H1 := H0 z x z). assert (H2 := H0 x z x).
-      specialize (H0 z x y). d0 r z. d0 r x. lra.
-  - rewrite (mdist_sym0 x y). apply mdist_tri0.
-Qed.
-
-Definition mtop {A : Type'} : (Metric A) -> Topology A := fun _114835 : Metric A => @topology A (fun S' : A -> Prop => forall x : A, (S' x) -> exists e : R, (Rlt (R_of_nat O) e) /\ (forall y : A, (Rlt (@mdist A _114835 (@pair A A x y)) e) -> S' y)).
-Lemma mtop_def {A : Type'} : (@mtop A) = (fun _114835 : Metric A => @topology A (fun S' : A -> Prop => forall x : A, (S' x) -> exists e : R, (Rlt (R_of_nat O) e) /\ (forall y : A, (Rlt (@mdist A _114835 (@pair A A x y)) e) -> S' y))).
-Proof. exact (REFL (@mtop A)). Qed.
-
-Definition mr1 : Metric R := metric (fun c => let (x,y) := c in Rabs (subr y x)).
-Lemma mr1_def : mr1 = (@metric R (@ε ((prod R R) -> R) (fun f : (prod R R) -> R => forall x : R, forall y : R, @Logic.eq R (f (@pair R R x y)) (Rabs (subr y x))))).
-Proof.
-  rewrite/mr1 ; f_equal ; align_ε.
-  - by [].
-  - by move=> d _ d_def // ; funext => -[].
-Qed.
-
-Lemma _dest_mk_Metric_if : forall {A : Type'} (r : (prod A A) -> R), ismet r -> mdist (metric r) = r.
-Proof.  by move=> A r ; rewrite _dest_mk_Metric. Qed.
-
-Lemma ismet_rdist : ismet (fun c : R * R => let (x, y) := c in Rabs (y - x)).
-Proof.
-  unfold ismet. split.
-  - by move=> x y ; rewrite RabsE eqP** normr_eq0 subr_eq0 eqP** eq_sym.
-  - move => x y z ; rewrite !coqRE. rewrite (distrC z x).
-    by rewrite (le_trans _ (ler_normD _ _)) // [in leRHS]addrA subrK distrC.
-Qed.
-
-Lemma mdist_mr1_align : mdist mr1 = (fun c : R * R => let (x, y) := c in Rabs (y - x)).
-Proof.
-  rewrite/mr1 ; exact (_dest_mk_Metric_if ismet_rdist).
-Qed.
-
-Lemma mtop_mr1_align : mtop mr1 = (toTopology R).
-Proof.
-  rewrite/mtop mdist_mr1_align -(_mk_dest_Topology (toTopology R)) ; f_equal => /=.
-  ext => s /= open_s.
-  - rewrite openE /= => r /open_s [e [pos_e sr]].
-    exists e => /=; first exact/RltP.
-    rewrite/ball_=> y /= rey ; apply sr.
-    by rewrite !coqRE distrC.
-  - move=> r sr. have [/= e e0 rs] := @normed_module.open_subball R^o R^o _ _ open_s sr.
-    exists (e/2)%mcR. have e20 : (0 < e / 2)%mcR by rewrite divr_gt0.
-    split ; first exact/RltP.
-    move=> r' rr'. apply: (rs _ _ e20) => /=.
-    + by rewrite sub0r normrN gtr0_norm // gtr_pMr // invf_lt1 // ltr1n.
-    + by rewrite RabsE distrC in rr' ; apply/RltP.
-Qed.
-
-Lemma of_nat_inj_le: forall n m, N.of_nat n <= N.of_nat m = (n <= m)%nat.
-Proof.
-  by move=> n m ; rewrite -{2}(Nnat.Nat2N.id n) -{2}(Nnat.Nat2N.id m) to_nat_inj_le.
-Qed.
-
-Import numFieldNormedType.Exports.
-Definition tends_num_real (x : nat -> R) (l : R) := (x \o N.of_nat) @ \oo --> l.
-
-Lemma tends_num_real_def : tends_num_real = (fun _115068 : nat -> R => fun _115069 : R => @tends R nat _115068 _115069 (@pair (Topology R) (nat -> nat -> Prop) (@mtop R mr1) N.ge)).
-Proof.
-  rewrite /tends_num_real mtop_mr1_align /tends /=.
-  ext => x l.
-  - move/(@cvgrPdist_le R R^o) => /= cvgxl U.
-    rewrite -neigh_align => -[e /= e_pos incl_ball_U].
-    have e20 : (0 < e/2)%mcR by rewrite divr_gt0.
-    have:= (cvgxl (e/2)%R e20) => -[M _ incl_inter_ball] ; exists (N.of_nat M).
-    split ; first by rewrite ge_def ; exact: leqn_refl.
-    move=> n ; rewrite -(Nnat.N2Nat.id n) => /N.ge_le.
-    rewrite of_nat_inj_le ssrnat.leP** => leqMn ; apply incl_ball_U.
-    rewrite ball_normE ; apply: (closed_ball_subset e20).
-    + by rewrite ltr_pdivrMr // ; rewrite ltr_pMr ; first rewrite ltr1n.
-    + by rewrite (closed_ballE _ e20) ; apply (incl_inter_ball (N.to_nat n)).
-  - move=> cvgxl ; apply/(@cvgrPdist_le R R^o) => /= e pos_e.
-    pose B := closed_ball_ Num.Def.normr l e. have := cvgxl B.
-    rewrite -neigh_align. have : nbhs l B.
-    + apply/(@nbhs_closedballP _ R^o).
-      exists (PosNum pos_e). by rewrite closed_ballE.
-    + move => /[swap]/[apply]. case => M [_ MBx]. near=> n.
-      apply: MBx. near: n. exists (N.to_nat M) => //=.
-      move=> n /=. move/ssrnat.leP.
-      by rewrite -of_nat_inj_le Nnat.N2Nat.id ; move/leqn_ge.
-  Unshelve. all: by end_near.
-Qed.
-
-Definition tendsto {A : Type'} : (prod (Metric A) A) -> A -> A -> Prop := fun _114977 : prod (Metric A) A => fun _114978 : A => fun _114979 : A => (Rlt (R_of_nat O) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978))) /\ (ler (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114979))).
-Lemma tendsto_def {A : Type'} : (@tendsto A) = (fun _114977 : prod (Metric A) A => fun _114978 : A => fun _114979 : A => (Rlt (R_of_nat O) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978))) /\ (ler (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114978)) (@mdist A (@fst (Metric A) A _114977) (@pair A A (@snd (Metric A) A _114977) _114979)))).
-Proof. exact (REFL (@tendsto A)). Qed.
-
-(* represents lim(x (!=)--> x0) f(x) = l *)
-Definition tends_real_real (f : R -> R) (l x0 : R) := f @ x0^' --> l.
-
-Lemma tends_real_real_def : tends_real_real = (fun _115511 : R -> R => fun _115512 : R => fun _115513 : R => @tends R R _115511 _115512 (@pair (Topology R) (R -> R -> Prop) (@mtop R mr1) (@tendsto R (@pair (Metric R) R mr1 _115513)))).
-Proof.
-  rewrite/tends_real_real/tendsto/tends mtop_mr1_align /= mdist_mr1_align.
-  ext => f l x0.
-  - move/(@cvgrPdist_le R R^o) => /= cvg_f_x0_l U.
-    rewrite -neigh_align => -[/= e e_pos incl_ball_U].
-    have pos_e2 : (0 < e/2)%mcR by rewrite divr_gt0.
-    have:= (cvg_f_x0_l (e/2)%mcR pos_e2) => -[/= d pos_d incl_inter_ball].
-    exists (x0 + d/2)%mcR. replace ((x0 + d/2)%mcR - x0)%coqR with (d/2)%mcR.
-    split. split ; last by reflexivity.
-    + by rewrite RabsE (RltP _ _)** normr_gt0;apply lt0r_neq0;rewrite divr_gt0.
-    + move=> x ; rewrite ?coqRE => -[neq_x_x0 ball_x0_d2_x].
-      apply incl_ball_U ; rewrite ball_normE ; apply: (closed_ball_subset pos_e2).
-      * by rewrite ltr_pdivrMr // ; rewrite ltr_pMr ; first rewrite ltr1n.
-      * rewrite (closed_ballE _ pos_e2) ; apply incl_inter_ball.
-        { rewrite/= distrC ; apply: (le_lt_trans ball_x0_d2_x).
-          by rewrite gtr0_norm ?divr_gt0 // ltr_pdivrMr // ltr_pMr // ltr1n. }
-        { rewrite -negP**-eqP** => eq_x_x0. move: neq_x_x0.
-          replace `|x - x0|%mcR with (@Algebra.zero R^o).
-          by rewrite lt_irreflexive. rewrite -(@normr0 _ R^o).
-          f_equal. by rewrite eq_x_x0 -RminusE Rminus_diag. }
-    + by rewrite -RplusE Rplus_minus_l.
-  - move=> cvgf_x0_l ; apply/(@cvgrPdist_le R R^o) => /= e pos_e.
-    pose B := closed_ball_ Num.Def.normr l e.
-    have := cvgf_x0_l B. rewrite -neigh_align. have : nbhs l B.
-    + apply/(@nbhs_closedballP _ R^o).
-      exists (PosNum pos_e). by rewrite closed_ballE.
-    + move => /[swap]/[apply]. case => cx0  [[neq_cx0_x0 _] cx0Bx0]. near=> n.
-      apply: cx0Bx0. near: n. exists (Rabs (cx0 - x0)) ; first by apply/RltP.
-      move=> /= x near_x_x0 neq_x_x0. split.
-      * apply Rabs_pos_lt.
-        move=>/Rminus_diag_uniq temp; rewrite{}temp in neq_x_x0.
-        by move:neq_x_x0 ; move/negP.
-      * by left ; rewrite RabsE RminusE distrC (RltP _ _)**.
-  Unshelve. all: by end_near.
-Qed.
-
-Definition diffl (f : R -> R) (y x : R) :=
-  @derivable _ R^o R^o f x 1 /\ @derive1 R^o R^o f x = y.
-
-Lemma diffl_def : diffl = (fun _115541 : R -> R => fun _115542 : R => fun _115543 : R => tends_real_real (fun h : R => Rdiv (Rminus (_115541 (Rplus _115543 h)) (_115541 _115543)) h) _115542 (R_of_nat O)).
-Proof.
-  rewrite/R_of_nat/diffl/derive1/derivable/tends_real_real/=. funext => f y x.
-  under eq_fun; first (move=> h; rewrite (scaler1 h) [(_ *: _)%mcR]mulrC (addrC h) ; over).
-  under [in X in _ /\ X]eq_fun; first (move=> h; rewrite [(_ *: _)%mcR]mulrC (addrC h) ; over).
-  ext => [[H1 H2]|H].
-  - by apply: cvg_toP.
-- split.
-  + by apply: cvgP H.
-  + by apply/cvg_lim.
-Qed.
-
-(*
-Lemma cvg_toS {A B : Type} (F G : set_system A) (f : A -> B) l : F `<=` G -> f @ [x --> F] --> l -> f @ [x --> G] --> l.
-*)
-
-Lemma cvg_dnbhs_at_right (f : R -> R) (p : R) (l : R) :
-  f x @[x --> p^'] --> l ->
-  f x @[x --> p^'+] --> l.
-Proof.
-apply: cvg_trans; apply: cvg_app.
-by apply: within_subset => r ?; rewrite gt_eqF.
-Qed.
-
-Lemma cvg_dnbhs_at_left (f : R -> R) (p : R) (l : R) :
-  f x @[x --> p^'] --> l ->
-  f x @[x --> p^'-] --> l.
-Proof.
-apply: cvg_trans; apply: cvg_app.
-by apply: within_subset => r ?; rewrite lt_eqF.
-Qed.
-
-Definition contl (f : R -> R) (x : R) := {for x, continuous f}.
-Lemma contl_def : contl = (fun f : R -> R => fun x : R => tends_real_real (fun h : R => f (Rplus x h)) (f x) (R_of_nat O)).
-Proof.
-  rewrite/contl. funext => f x /=. rewrite (@continuous_shift _ R^o R^o).
-  under [in X in _ = X]eq_fun do (rewrite !coqRE addrC).
-  rewrite/tends_real_real/continuous_at/=.
-  rewrite -[in X in _ --> X](add0r x) !coqRE.
-  transitivity (f (x0 + x)%mcR @[x0 --> (0%mcR)^'-] --> f (0+x)%mcR /\
-    f (x0 + x)%mcR @[x0 --> (0%mcR)^'+] --> f (0+x)%mcR).
-  - apply propext. apply iff_sym. exact: left_right_continuousP.
-  - ext => [[contfxl contfxr]|contfx].
-    + exact: cvg_at_right_left_dnbhs.
-    + split ; [exact: cvg_dnbhs_at_left | exact: cvg_dnbhs_at_right].
-Qed.
-
-Definition differentiable (f : R -> R) (x : R) := @derivable _ R^o R^o f x 1.
-Lemma differentiable_def : differentiable = (fun _115574 : R -> R => fun _115575 : R => exists l : R, diffl _115574 l _115575).
-Proof.
-  rewrite/differentiable/diffl/derivable/=. ext => f x.
-  - by move=> ? ; exists (@derive1 R^o R^o f x).
-  - by move=>[?[]].
-Qed.
-
-*)

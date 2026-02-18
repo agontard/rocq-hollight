@@ -1,31 +1,10 @@
-Require Import Stdlib.Reals.Reals mathcomp.boot.ssrnat mathcomp.boot.div mathcomp.boot.seq mathcomp.algebra.ssrint mathcomp.algebra.intdiv mathcomp.classical.classical_sets mathcomp.classical.cardinality mathcomp.analysis_stdlib.Rstruct_topology HOLLight.HOL.mappings.
-Definition _FALSITY_ : Prop := False.
-Lemma _FALSITY__def : _FALSITY_ = False.
-Proof. exact (REFL _FALSITY_). Qed.
-Definition o {A B C : Type'} : (B -> C) -> (A -> B) -> A -> C := fun f : B -> C => fun g : A -> B => fun x : A => f (g x).
-Lemma o_def {A B C : Type'} : (@o A B C) = (fun f : B -> C => fun g : A -> B => fun x : A => f (g x)).
-Proof. exact (REFL (@o A B C)). Qed.
+Require Import Stdlib.Reals.Reals mathcomp.boot.ssrnat mathcomp.boot.div mathcomp.boot.seq mathcomp.algebra.ssralg mathcomp.algebra.ssrint mathcomp.algebra.intdiv mathcomp.classical.classical_sets mathcomp.classical.cardinality mathcomp.analysis_stdlib.Rstruct_topology HOLLight.HOL.mappings.
 Definition I {A : Type'} : A -> A := fun x : A => x.
 Lemma I_def {A : Type'} : (@I A) = (fun x : A => x).
 Proof. exact (REFL (@I A)). Qed.
-Definition hashek : Prop := True.
-Lemma hashek_def : hashek = True.
-Proof. exact (REFL hashek). Qed.
-Definition LET {A B : Type'} : (A -> B) -> A -> B := fun f : A -> B => fun x : A => f x.
-Lemma LET_def {A B : Type'} : (@LET A B) = (fun f : A -> B => fun x : A => f x).
-Proof. exact (REFL (@LET A B)). Qed.
-Definition LET_END {A : Type'} : A -> A := fun t : A => t.
-Lemma LET_END_def {A : Type'} : (@LET_END A) = (fun t : A => t).
-Proof. exact (REFL (@LET_END A)). Qed.
-Definition GABS {A : Type'} : (A -> Prop) -> A := fun P : A -> Prop => @ε A P.
-Lemma GABS_def {A : Type'} : (@GABS A) = (fun P : A -> Prop => @ε A P).
-Proof. exact (REFL (@GABS A)). Qed.
 Definition _SEQPATTERN {A B : Type'} : (A -> B -> Prop) -> (A -> B -> Prop) -> A -> B -> Prop := fun r : A -> B -> Prop => fun s : A -> B -> Prop => fun x : A => @COND (B -> Prop) (exists y : B, r x y) (r x) (s x).
 Lemma _SEQPATTERN_def {A B : Type'} : (@_SEQPATTERN A B) = (fun r : A -> B -> Prop => fun s : A -> B -> Prop => fun x : A => @COND (B -> Prop) (exists y : B, r x y) (r x) (s x)).
 Proof. exact (REFL (@_SEQPATTERN A B)). Qed.
-Definition _UNGUARDED_PATTERN : Prop -> Prop -> Prop := fun p : Prop => fun r : Prop => p /\ r.
-Lemma _UNGUARDED_PATTERN_def : _UNGUARDED_PATTERN = (fun p : Prop => fun r : Prop => p /\ r).
-Proof. exact (REFL _UNGUARDED_PATTERN). Qed.
 Definition _GUARDED_PATTERN : Prop -> Prop -> Prop -> Prop := fun p : Prop => fun g : Prop => fun r : Prop => p /\ (g /\ r).
 Lemma _GUARDED_PATTERN_def : _GUARDED_PATTERN = (fun p : Prop => fun g : Prop => fun r : Prop => p /\ (g /\ r)).
 Proof. exact (REFL _GUARDED_PATTERN). Qed.
@@ -47,9 +26,6 @@ Proof. exact (REFL (@PASSOC A B C D)). Qed.
 Definition minimal : (nat -> Prop) -> nat := fun _6536 : nat -> Prop => @ε nat (fun n : nat => (_6536 n) /\ (forall m : nat, (ltn m n) -> ~ (_6536 m))).
 Lemma minimal_def : minimal = (fun _6536 : nat -> Prop => @ε nat (fun n : nat => (_6536 n) /\ (forall m : nat, (ltn m n) -> ~ (_6536 m)))).
 Proof. exact (REFL minimal). Qed.
-Definition MEASURE {A : Type'} : (A -> nat) -> A -> A -> Prop := fun _8094 : A -> nat => fun x : A => fun y : A => ltn (_8094 x) (_8094 y).
-Lemma MEASURE_def {A : Type'} : (@MEASURE A) = (fun _8094 : A -> nat => fun x : A => fun y : A => ltn (_8094 x) (_8094 y)).
-Proof. exact (REFL (@MEASURE A)). Qed.
 Definition NUMPAIR : nat -> nat -> nat := fun _17487 : nat => fun _17488 : nat => muln (expn (NUMERAL (BIT0 (BIT1 O))) _17487) (addn (muln (NUMERAL (BIT0 (BIT1 O))) _17488) (NUMERAL (BIT1 O))).
 Lemma NUMPAIR_def : NUMPAIR = (fun _17487 : nat => fun _17488 : nat => muln (expn (NUMERAL (BIT0 (BIT1 O))) _17487) (addn (muln (NUMERAL (BIT0 (BIT1 O))) _17488) (NUMERAL (BIT1 O)))).
 Proof. exact (REFL NUMPAIR). Qed.

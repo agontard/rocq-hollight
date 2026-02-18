@@ -1,6 +1,7 @@
 From HB Require Import structures.
-From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat eqtype choice seq.
-From mathcomp Require Import boolp functions.
+From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat.
+From mathcomp Require Export eqtype choice.
+From mathcomp Require Import seq boolp functions.
 From mathcomp Require Export classical_sets.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -25,11 +26,11 @@ Notation is_Type' := (HOL_isPointed.Build _).
 (* in classical context, is a factory for pointedType *)
 HB.builders Context T of HOL_isPointed T.
 
-HB.instance Definition _ := isPointed.Build _ point.
-
 HB.instance Definition _ := gen_eqMixin T.
 
 HB.instance Definition _ := gen_choiceMixin T.
+
+HB.instance Definition _ := isPointed.Build _ point.
 
 HB.end.
 
@@ -94,23 +95,8 @@ Qed. *)
    Proof. by ext 7. Qed.
    Print test.
 
-   This means that ext should be prefered to ext n if possible. *)
-
-(****************************************************************************)
-(* Repeating exists. *)
-(****************************************************************************)
-
-Tactic Notation "exist" uconstr(x1) uconstr(x2) :=
-  exists x1 ; exists x2.
-
-Tactic Notation "exist" uconstr(x1) uconstr(x2) uconstr(x3) :=
-  exists x1 ; exists x2 ; exists x3.
-
-Tactic Notation "exist" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) :=
-  exists x1 ; exists x2 ; exists x3 ; exists x4.
-
-Tactic Notation "exist" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
-  exists x1 ; exists x2 ; exists x3 ; exists x4 ; exists x5.
+   This means that ext should be prefered to ext n if possible.
+   But move=> /n` for n between 1 and 5 (defined below) does not have this issue *)
 
 (****************************************************************************)
 (* Coercion from Prop to bool? *)
@@ -193,7 +179,7 @@ Definition ε (A : Type') (P : A -> Prop) := get P.
 Definition ε_spec {A : Type'} {P : A -> Prop} : (exists x, P x) -> P (ε P) := @getPex _ P.
 
 Lemma align_ε (A : Type') (P : A -> Prop) a : P a -> (forall x, P a -> P x -> a = x) -> a = ε P.
-Proof. 
+Proof.
   by move => ha ; apply ; last (apply ε_spec ; exists a).
 Qed.
 
@@ -208,7 +194,7 @@ Ltac is_True H :=
   match type of H' with ?P => rewrite <- (is_True P) in H' ;
     rewrite -> H' in * ; clear H' ; try clear H end.
 
-Lemma is_False P : (P = False) = ~ P.
+Lemma is_False P : (P = False) = (~ P).
 Proof.
   by ext=> // ->.
 Qed.
@@ -255,20 +241,6 @@ Definition COND_dep (Q: Prop) (C: Type) (f1: Q -> C) (f2: ~Q -> C) : C :=
   | left x => f1 x
   | right x => f2 x
   end.
-
-(****************************************************************************)
-(* Derive proof irrelevance. *)
-(****************************************************************************)
-
-Lemma proof_irrelevance (P : Prop) :
-  forall (p p' : P), p = p'.
-Proof.
-  case (EM P).
-  - by rewrite -{1}(is_True P)=>->.
-  - by rewrite -(is_False P).
-Qed.
-
-Arguments proof_irrelevance: clear implicits.
 
 (****************************************************************************)
 (* Proof of HOL-Light axioms. *)
@@ -360,13 +332,13 @@ Section Subtype.
   Lemma mk_dest x : mk (dest x) = x.
   Proof.
     rewrite/mk/COND_dep; case: (pselect (P (dest x))); case x ; last by [].
-    by move=>a' p pa' ; rewrite (proof_irrelevance _ p pa').
+    by move=>a' p pa' ; rewrite (Prop_irrelevance p pa').
   Qed.
 
   Lemma dest_inj x y : dest x = dest y -> x = y.
   Proof.
     intro e. destruct x as [x i]. destruct y as [y j]. simpl in e.
-    subst y. rewrite (proof_irrelevance _ i j). reflexivity.
+    subst y. rewrite (Prop_irrelevance i j). reflexivity.
   Qed.
 
   Lemma mk_inj x y : P x -> P y -> mk x = mk y -> x = y.
@@ -520,7 +492,7 @@ Abort. *)
 
 (* use /` during ssr intropattern to ext all,
    /f` to only use funext,
-   and /n` for n between 1 and 5 ext exactly n arguments / hypotheses. *)
+   and /n` for n between 1 and 5 to ext exactly n arguments / hypotheses. *)
 
 Ltac funext :=
   let rec funext' := (let x := fresh "x" in
@@ -558,7 +530,8 @@ Notation "5`" := (ltac:( let H1 := fresh in first [apply funext | eqProp]=>H1 ;
 Goal True -> test = test. move => * /f`* /3` H n0 m0. *)
 
 (****************************************************************************)
-(* The opposite, transform hypothesis f = g with forall x, f x = g x. *)
+(* Change top hypothesis of the form [f = g] with                           *)
+(* [forall x1 ... xn, f x1 ... xn = g x1 ... xn] or the opposite.           *)
 (****************************************************************************)
 
 Lemma gen_fun1 A B (f g : forall a : A, B a) : f = g <-> forall a, f a = g a.
@@ -608,27 +581,39 @@ Notation "[ 'funext' ]" := ltac:(lazymatch goal with
 Notation "[ 'gen' ]" := ltac:(try move/[funext] ; move_gen_fun).
 
 (****************************************************************************)
-(* specialize the top assumption *)
+(* specialize the top assumption during intros [move=> ... /[spec x] *)
 (****************************************************************************)
 
-Notation "[ 'spec' x ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x)).
+Ltac spec_tactic x := let H := fresh "_top_" in move=>H ; move:{H}(H x).
 
-Notation "[ 'spec' x | y ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x y)).
+Notation "[ 'spec' specarg1 ]" := ltac:(spec_tactic specarg1).
 
-Notation "[ 'spec' x | y | z ]" :=
-  ltac:(let H := fresh "top" in move=>H ; move:{H}(H x y z)).
+Notation "[ 'spec' specarg1 | specarg2 ]" := ltac:( spec_tactic specarg1 ; spec_tactic specarg2).
+
+Notation "[ 'spec' specarg1 | specarg2 | specarg3 ]" :=
+  ltac:(spec_tactic specarg1 ; spec_tactic specarg2 ; spec_tactic specarg3).
 
 Notation "[ 'spec' ]" :=
-  ltac:(lazymatch goal with
-  | |- (forall _: ?A, _) -> _ => have: A ; last move/[swap]/[apply]
+  ltac:(let H := fresh "_top_" in let arg := fresh "x" in lazymatch goal with
+  | |- (forall _: ?A, _) -> _ => have arg : A ;
+    last (move=>H ; move:{H} arg (H arg) ; try move=> _)
   | |- _ => fail "not a product type in top assumption" end).
 
-Notation "[ 'spec' 'by' [ ] ]" :=
-  ltac:(lazymatch goal with
-  | |- (forall _: ?A, _) -> _ => (have: A by []) => /[swap]/[apply]
-  | |- _ => fail "not a product type in top assumption" end).
+Notation "[ 'spec' 'by' [ ] ]" := ltac:(move/[spec] ; first by []).
+
+(****************************************************************************)
+(* replaces [ε ?P] with x such that [P x], adding [exists x, P x] as a goal *)
+(****************************************************************************)
+
+Ltac ε_spec_tactic tac := let x := fresh "x" in lazymatch goal with
+  |- context[@ε ?T0 ?P] => let T := (eval cbn in T0) in
+      have /[spec] := @ε_spec T0 P ; [tac | move: (ε P) ] ;
+      change T0 with T end.
+
+Tactic Notation "ε_spec" := ε_spec_tactic idtac.
+
+Tactic Notation "ε_spec" "by" tactic(tac) := ε_spec_tactic ltac:(by tac).
+Tactic Notation "ε_spec" "by" "[" "]" := ε_spec by unshelve eexists ; eauto 1.
 
 (****************************************************************************)
 (* Repeating exists. *)
@@ -692,13 +677,14 @@ Ltac align_ε :=
           gobble a' uv ;
           revert a' H H' (* Revert [a'], [P a] and [P a'] to reuse them in other tactics *)
         ]
-    | |- ?a = ε ?P => apply align_ε (* Replaces the goal [a = ε P] with two goals [P a] and
-                                       [forall x, P a => P x => x = a]. *)
+    | |- @eq ?T _ (ε _) => apply (align_ε (A := (T : Type')))
+        (* Replaces the goal [a = ε P] with two goals [P a] and
+           [forall x, P a => P x => x = a]. *)
     end
   in aux.
 
 (****************************************************************************)
-(* For if ... then ... else ... *)
+(* For if ... then ... else ... over Prop *)
 (****************************************************************************)
 
 (* The following are useful tools to work with COND :
@@ -710,12 +696,12 @@ Ltac align_ε :=
    - Lemma if_elim destructs hypothesis [if P then Q else R]
      as if it were (P /\ Q) \/ (~P /\ R) *)
 
-Lemma if_triv_True (A : Type') (P : Prop) (x y : A) : P -> (if P then x else y) = x.
+Lemma if_triv_True (A : Type) (P : Prop) (x y : A) : P -> (if P then x else y) = x.
 Proof.
   by rewrite -{1}(is_True P) => -> ; exact (if_True _ _).
 Qed.
 
-Lemma if_triv_False (A : Type') (P : Prop) (x y : A) : ~P -> (if P then x else y) = y.
+Lemma if_triv_False (A : Type) (P : Prop) (x y : A) : ~P -> (if P then x else y) = y.
 Proof.
   by rewrite -{1}(is_False P) => -> ; exact (if_False _ _).
 Qed.
@@ -747,7 +733,7 @@ Tactic Notation "if_triv" constr(P) "using" constr(H) :=
   (rewrite (if_triv_True _ P) ; last by auto using H') ||
   (rewrite (if_triv_False _ P) ; last by auto using H') ; clear H'.
 
-Lemma if_intro (A : Type') (Q : Prop) (P : A -> Prop) (x y : A) :
+Lemma if_intro (A : Type) (Q : Prop) (P : A -> Prop) (x y : A) :
   (Q -> P x) -> (~Q -> P y) -> P (if Q then x else y).
 Proof. case (pselect Q)=> [? /1= + _ | ? /1= _]; exact. Qed.
 
@@ -875,10 +861,6 @@ Ltac full_destruct := repeat match goal with
 
 Ltac blindrewrite := repeat match goal with H : _ |- _ => rewrite H end.
 
-(* Tactic to clear variables not appearing anywhere, including hypotheses. *)
-
-Ltac clearall := repeat match goal with useless : _ |- _ => clear useless end.
-
 (* In HOL_Light, an inductive defintion is top-down :
    if [Case_i x1 ... xn : Hyps_i x1 ... xn -> P (f_i x1 ... xn)] for 1 <= i <= k
    are the constructors / rules of P, then :
@@ -916,7 +898,7 @@ Ltac ind_align :=
                      The Hyps_i are in the context. *)
   | (* Proving [P_h x -> P_r x] *)
     apply H ; (* Replaces goal [P_r x] with [H'] *)
-    clearall ; (* H' talks about fresh variables *)
+    clear ; (* H' talks about fresh variables *)
     intros_namelast H ;
     full_destruct ; (* Destructing H results in one goal per case, and separates the hypotheses *)
     blindrewrite ;  (* not much to do, each clause should be proved with a rule,
@@ -934,11 +916,9 @@ Definition finv [A B : Type'] (f : A -> B) : B -> A := fun y => ε (fun x => f x
 
 Lemma finv_inv_l [A B : Type'] (f : A -> B) (x : A) :
   (forall x0 x1 : A, f x0 = f x1 -> x0 = x1) -> finv f (f x) = x.
-Proof.
-  intro H. apply H. apply (ε_spec (P := fun x' => f x' = f x)). now exists x. 
-Qed.
+Proof. by apply ; rewrite/finv ; ε_spec by exists x. Qed.
 
-Ltac finv_inv_l := intros ; apply finv_inv_l ; clearall.
+Ltac finv_inv_l := intros ; apply finv_inv_l ; clear.
 
 Lemma finv_inv_r [A B : Type'] (f : A -> B) : forall (P : B -> Prop) (y : B),
   (P y -> exists x, f x = y) -> ((exists x, f x = y) -> P y) -> P y = (f (finv f y) = y).
@@ -1055,7 +1035,6 @@ Ltac constr_align H := (* Takes as argument the lemma [forall x, _mk_T (_dest_T 
                           Requires explicit type arguments. *)
   extall ; match goal with |- ?x = _ => exact (esym (H x)) end.
 
-
 (*****************************************************************************)
 (* For Record-like types *)
 (*****************************************************************************)
@@ -1082,7 +1061,7 @@ Ltac revert_keep H :=
     repeat match goal with
     | x : _ |- _ => assert_fails typecheck T x ; revert x end end.
 
-(* Apply proof_irrelevance to all propositionnal fields,
+(* Apply Prop_irrelevance to all propositionnal fields,
    to prove injectivity of _dest_T. *)
 
 (* To do that we first need to rewrite equalities to remove the difference in
@@ -1099,7 +1078,7 @@ Ltac instance_uniqueness := let instance1 := fresh in
   | ?f _ _ _ _ = _ => unfold f in eq end ;
   destruct instance1,instance2 ; simpl in eq ;
   revert_keep eq ; inversion_clear eq ;
-  intros ; f_equal ; apply proof_irrelevance.
+  intros ; f_equal ; apply Prop_irrelevance.
 
 (* Combine it with finv_inv_l. *)
 
@@ -1132,7 +1111,7 @@ Tactic Notation "_dest_mk_record" "by" tactic(tac) "with" uconstr(dest) :=
     | |- (exists _, ?f _ _ _ = _) -> _ => unfold f
     | |- (exists _, ?f _ _ _ _  = _) -> _ => unfold f end ; 
     let r := fresh in
-    intros [r <-] ; clearall ; destruct r ;
+    intros [r <-] ; clear ; destruct r ;
     try match goal with
     | |- ?P _ => unfold P
     | |- ?P _ _ => unfold P
@@ -1494,7 +1473,7 @@ Section Quotient.
     destruct x as [c [x h]]. destruct y as [d [y i]]. unfold elt_of. simpl.
     intro r. generalize (ex_intro (fun a : A => c = R a) x h)
       (ex_intro (fun a : A => d = R a) y i).
-    have -> : c = d ; last by move=>* ; f_equal ; exact: proof_irrelevance.
+    have -> : c = d ; last by move=>* ; f_equal ; exact: Prop_irrelevance.
     rewrite h i. ext=> z ?.
     - apply: (R_trans (eq_elt_of y)).
       rewrite i in r. apply (R_trans (R_sym r)).

@@ -70,6 +70,22 @@ builtin "eq" ≔ GEQ;
 builtin "GEQ_def" ≔ GEQ_def;
 builtin "cancel2" ≔ ISO;
 builtin "ISO_def" ≔ ISO_def;
+builtin "ε" ≔ GABS;
+builtin "GABS_def" ≔ GABS_def;
+builtin "and" ≔ _UNGUARDED_PATTERN;
+builtin "_UNGUARDED_PATTERN_def" ≔ _UNGUARDED_PATTERN_def;
+builtin "False" ≔ _FALSITY_;
+builtin "_FALSITY__def" ≔ _FALSITY__def;
+builtin "True" ≔ hashek;
+builtin "hashek_def" ≔ hashek_def;
+builtin "LET" ≔ LET;
+builtin "LET_def" ≔ LET_def;
+builtin "LET_END" ≔ LET_END;
+builtin "LET_END_def" ≔ LET_END_def;
+builtin "MEASURE" ≔ MEASURE;
+builtin "MEASURE_def" ≔ MEASURE_def;
+builtin "o" ≔ o;
+builtin "o_def" ≔ o_def;
 
 // unit type
 builtin "unit" ≔ unit;
@@ -466,9 +482,9 @@ builtin "CARD" ≔ CARD;
 builtin "CARD_def" ≔ CARD_def;
 builtin "dimindex" ≔ dimindex;
 builtin "dimindex_def" ≔ dimindex_def;
-builtin "set_of_list" ≔ set_of_list;
+builtin "set_of_seq" ≔ set_of_list;
 builtin "set_of_list_def" ≔ set_of_list_def;
-builtin "list_of_set" ≔ list_of_set;
+builtin "seq_of_set" ≔ list_of_set;
 builtin "list_of_set_def" ≔ list_of_set_def;
 
 // finite_image

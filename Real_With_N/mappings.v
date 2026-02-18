@@ -2020,7 +2020,7 @@ Proof.
   ext => R H.
   - intros X ne.
     destruct ne as [x Hx].
-    rewrite <- (notE _); intro goal.
+    rewrite <- (not_notE _); intro goal.
     case (prop_degen (forall y: A, ~ X y)); intro h.
     + rewrite is_True in h.
       assert (~ X x) by exact (h x).
@@ -2045,7 +2045,7 @@ Proof.
       apply H0.
       apply Acc_intro.
       intros y Ryx.
-      rewrite <- (notE _).
+      rewrite <- (not_notE _).
       apply H1.
       assumption.
 Qed.

@@ -181,12 +181,8 @@ Proof. _mk_dest_record. Qed.
 Lemma axiom_48 : forall {A : Type'} (r : (A -> Prop) -> Prop), ((fun t : (A -> Prop) -> Prop => @istopology A t) r) = ((@open_in A (@topology A r)) = r).
 Proof.
   _dest_mk_record by rewrite/3=. record_exists {| open_in := r |}.
-  - move=> S ; have -> : [set a | (exists s : set A, S s /\ s a)] =
-      [set a | (exists s : set A, s \in S /\ a \in s)] ; last by and_arrow.
-    by f_equal => /` a [s Hs] ; exists s ; move:Hs ; rewrite 2!in_setE.
-  - move=> S ; have <- : [set a | (exists s : set A, S s /\ s a)] =
-      [set a | (exists s : set A, s \in S /\ a \in s)] ; last by and_arrow.
-    by f_equal => /` a [s Hs] ; exists s ; move:Hs ; rewrite 2!in_setE.
+  - by rewrite bigcupE in H1 ; and_arrow.
+  - by rewrite bigcupE ; and_arrow.
 Qed.
 
 (*****************************************************************************)
@@ -282,7 +278,7 @@ Proof.
   rewrite/dest_metric/mdist_pair in eq. simpl in eq.
   revert_keep eq. case: eq => -> /[gen] mdisteq0.
   have -> : mdist0 = mdist1 by ext=> x y ; exact: (mdisteq0 (x,y)).
-  clearall => * ; f_equal ; exact: proof_irrelevance.
+  clear => * ; f_equal ; exact: Prop_irrelevance.
 Qed.
 
 Lemma axiom_52 : forall {A : Type'} (r : prod (A -> Prop) ((prod A A) -> R)), ((fun m : prod (A -> Prop) ((prod A A) -> R) => @is_metric_space A m) r) = ((@dest_metric A (@metric A r)) = r).
@@ -363,9 +359,10 @@ Lemma from_setI_closed : forall s s' : set nat,
   range from s -> range from s' -> range from (s `&` s').
 Proof.
   move=> _ _ [n _ <-] [n' _ <-] ; exists (maxn n n') => // ; symmetry.
-  rewrite/from/maxn ; case ltnP=> ? ; [apply: setIidr | apply: setIidl] => k.
-  1,2 : rewrite/= 2!in_itv /= 2!Bool.andb_true_r; apply: le_trans => //.
-  exact: ltW.
+  rewrite/from/maxn ; case ltnP=> ? ; [apply: setIidr | apply: setIidl].
+  1,2: move=> ? ; rewrite/= 2!in_itv /= 2!Bool.andb_true_r. 
+  - exact/le_trans/ltW.
+  - exact: le_trans.
 Qed.
 
 Definition sequentially : net nat := {|
@@ -424,7 +421,7 @@ Proof.
   - rewrite thm_NUMSEG_REC // setIC thm_INSERT_INTER=> /c` [sn | nsn].
     + have [_ ->] := @thm_SUM_CLAUSES nat nat.
       2: { apply: finite_setIl ; exact: thm_FINITE_NUMSEG. }
-      rewrite/COND if_triv_False ; last by rewrite/3=/setI/= ltnn => -[].
+      if_triv by rewrite/3=/setI/= ltnn => -[].
       rewrite big_mkcond big_ord_recr -big_mkcond /= addrC setIC IHn.
       by move:sn=> /3= ? /1=.
     + rewrite big_mkcond big_ord_recr -big_mkcond /= setIC IHn.
@@ -570,19 +567,13 @@ Proof.
     have ->: v ord0 i ^+ 2 = \sum_(k < n) (if k = i then v ord0 i ^+ 2 else 0).
     + elim: n v i => [|n IHn] v i.
       { by rewrite/exp/iterop/= thinmx0 big_ord0 mxE mul0r. }
-      rewrite big_ord_recl /= ; case (EM (ord0 = i)).
-      * move=> <-. have -> /= : `[< ord0 = ord0 >] = true.
-        { by move=> ? ; rewrite asboolT. }
-        rewrite big1 ?addr0 // => k.
+      rewrite big_ord_recl /= ; if_intro.
+      * move=> <-. rewrite big1 ?addr0 // => k.
         by have -> : `[< lift ord0 k = ord0 >] = false by rewrite asboolF.
-      * move/[dup] => in0 ; rewrite eqP** negP** -eqbF_neg -eqP** => ->.
-        rewrite asboolF //= add0r ; rewrite sym in in0.
-        have {i in0}[i ->] := lift0_surj in0.
+      * rewrite sym add0r => /lift0_surj [{}i ->].
         rewrite-{1}(mxE Datatypes.tt (fun (i : 'I_1) j => v i (lift ord0 j))).
-        by rewrite IHn mxE ; f_equal=> /` ? ; rewrite (injectiveE lift_inj).
-    + apply: ler_sum=> /= k _ ; case (EM (k = i)) => [->|?].
-      * by rewrite asboolT.
-      * by rewrite asboolF // -[X in _ <= X]/(_ ^+ 2) sqr_ge0.
+        by rewrite IHn mxE ; f_equal => /` ? ; rewrite (injectiveE lift_inj).
+    + apply: ler_sum=> /= k _ /c` [->|?] ; [by [] | exact: sqr_ge0].
 Qed.
 
 Lemma sums_def {n0 : Type'} : (@sums n0) = (fun _1333473 : nat -> cart R n0 => fun _1333474 : cart R n0 => fun _1333475 : nat -> Prop => @FImp n0 nat (fun n : nat => @vsum nat n0 (@setI nat _1333475 (dotdot (NUMERAL O) n)) _1333473) _1333474 sequentially).

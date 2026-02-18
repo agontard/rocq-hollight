@@ -1,67 +1,33 @@
-HOL-Light libraries in Rocq
----------------------------
+# HOL-Light libraries in Rocq
 
-This [Rocq](https://coq.inria.fr/) library contains an automatic translation of the [HOL-Light](https://github.com/jrh13/hol-light) library [Multivariate/make_complex.ml](https://github.com/jrh13/hol-light/blob/master/Multivariate/make_complex.ml) with various HOL-Light types and functions [mapped](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.lp) to the corresponding types and functions of the Rocq standard library so that, for instance, a HOL-Light theorem on HOL-Light real numbers is translated to a Rocq theorem on Rocq real numbers. The provided theorems can therefore be readily used within other Rocq developments based on the Rocq standard library. More types and functions need to be aligned though (see below how to contribute). The translation has been done using [hol2dk](https://github.com/Deducteam/hol2dk) to extract and translate HOL-Light proofs to Lambdapi files, and [lambdapi](https://github.com/Deducteam/lambdapi) to translate Lambdapi files to Rocq files.
+This [Rocq](https://rocq-prover.org/) library contains an automatic translation of the [HOL-Light](https://github.com/jrh13/hol-light) libraries [Multivariate/make_complex.ml](https://github.com/jrh13/hol-light/blob/master/Multivariate/make_complex.ml) and [Logic/make.ml](https://github.com/jrh13/hol-light/blob/master/Logic/make.ml) with various HOL-Light types and functions mapped to the corresponding types and functions of the Rocq standard library or of the Mathcomp library.
 
-It contains more than 20,000 theorems on arithmetic, wellfounded relations,
-lists, real numbers, integers, basic set theory, permutations, group
-theory, matroids, metric spaces, homology, vectors, determinants,
-topology, convex sets and functions, paths, polytopes, Brouwer degree,
-derivatives, Clifford algebra, integration, measure theory, complex
-numbers and analysis, transcendental numbers, real analysis, complex
-line integrals, etc. See HOL-Light files for more details.
+## Contents
+This repository tries to emulate the structure of the [HOL-Light repository](https://github.com/jrh13/hol-light), with additionnal subfolders for intermediary translations (intermediary translations allow to use HOL-Light theorems for key mappings, namely the type `real` and the `unify` function from the logic library).
+- file init.v contains the alignments of pointed Types and HOL-Light connectives, axioms, and basic constructions like subtypes, along with a wide range of tactics useful for dealing with hol-light objects or proving specific kinds of alignments.
+- file morepointedtypes.v is a makeshift fix of a problem with mathcomp's structure 
+- **Real_With_N**: Basic alignments (basic types, functions on natural numbers and lists) with the Rocq standard library. The HOL-Light type `num` of natural numbers is mapped to the Rocq type `N` of binary natural numbers.
+- A translation of Multivariate based on Real_With_N was made which aligned the type `real` and its operations with Rocq's standard library, but is not maintained and was based on an older version of Real_With_N.
+- **Real_With_nat**: same as Real_With_N but `num` is mapped to the more common type `nat` of unary natural numbers, and functions on `num` and `list` are mapped to their Mathcomp counterparts.
+- **HOL**: Translation of `hol_lib.ml` which is a common dependency of all other translated libraries, containing in particular the alignments of the types `real` and `int` (and functions on them) with their mathcomp counterparts.
+- **Multivariate**: Translation of the Multivariate library based on mappings from **HOL** with additionnal mappings for vectors and topological spaces.
+- **Unif**: Translation of part of the Logic library based on mappings from **HOL**, including the definition and alignment of the types of first order terms and formulae
+- **Logic**: Translation of the Logic library based on **Unif**
+- **Examples** and **Library**: respecting the structure of the HOL-Light repository, mappings of functions defined in files from either of these two directories are put here so that it is possible to use them for independent libraries which may all load these files and use these definitions.
 
-The translated theorems are provided as axioms in order to have a fast Require because the proofs currently extracted from HOL-Light are very big (91 Gb) and not very informative for they are low level (the translation is done at the kernel level, not at the source level). If you are skeptical, you can however generate and check them again by using the script reproduce. It however takes about 25 hours with 32 processors Intel Core i9-13950HX and 128 Gb RAM. If every thing works well, the proofs will be in the directory `tmp/output`.
-
-The types and functions currently [aligned](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.lp) are:
-- types: unit, prod, list, option, sum, ascii, N, R, Z
-- functions on N: pred, add, mul, pow, le, lt, ge, gt, max, min, sub, div, modulo, even, odd, factorial
-- functions on Z: IZR, le, lt, ge, gt, opp, add, sub, mul, abs, sgn, max, min, pow, div, rem, divide, coprime, gcd, lcm
-- functions on list: app, rev, map, removelast, In, hd, tl
-- functions on R: Rle, Rplus, Rmult, Rinv, Ropp, Rabs, Rdiv, Rminus, Rge, Rgt, Rlt, Rmax, Rmin, IZR, Rsgn, Rmod_eq, Rpow
-
-Your help is welcome to align more functions!
-
-**How to contribute?**
-
-You can easily contribute by proving the correctness of more mappings in Rocq:
-
-- Look in [terms.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/terms.v) for the definition of a function symbol, say f, that you want to replace; note that it is followed by a lemma f_DEF stating what f is equal to.
-
-- Copy and paste in [mappings.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.v) the lemma f_DEF, and try to prove it if f is replaced by your own function.
-
-- Create a pull request.
-
-You can also propose to change the mapping of some type in [mappings.v](https://anonymous.4open.science/r/rocq-hollight-127E/Multivariate/mappings.v). Every HOL-Light type `A` is axiomatized as being isomorphic to the subset of elements `x` of some already defined type `B` that satisfies some property `p:B->Prop`. `A` can always be mapped to the Rocq type `{x:B|p(x)}` (see [init.v](https://anonymous.4open.science/r/rocq-hollight-127E/init.v)) but it is possible to map it to some more convenient type `A'` by defining two functions:
-
-- `mk:B->A'`
-
-- `dest:A'->B`
-
-and proving two lemmas:
-
-- `mk_dest x: mk (dest x) = x`
-
-- `dest_mk x: P x = (dest (mk x) = x)`
-
-showing that `A'` is isomorphic to `{x:B|p(x)}`.
-
-Note that the mappings of functions on natural numbers and lists are proved in [Real_With_nat](https://anonymous.4open.science/r/rocq-hollight-127E/Real_With_nat/).
-
-**Axioms used**
-
-As HOL-Light is based on classical higher-order logic with choice, this library uses the following standard set of axioms in Rocq,
-declared in mathcomp-classical:
-
+## Building the libraries
+dependencies can be installed via [opam](https://opam.ocaml.org/) with
+```bash
+$ opam repo add rocq-released https://rocq-prover.org/opam/released
+$ opam install --deps-only .
 ```
-Axiom constructive_indefinite_description : forall (A : Type) (P : A->Prop), (exists x, P x) -> { x : A | P x }.
-Axiom fun_ext : forall {A B : Type} {f g : A -> B}, (forall x, (f x) = (g x)) -> f = g.
-Axiom prop_ext : forall {P Q : Prop}, (P -> Q) -> (Q -> P) -> P = Q.
+The libraries can then be built with
+```bash
+$ make -j2
 ```
-
-**Usage in a Rocq file**
-
+## Translated proofs
+The translated theorems are provided as axioms in order to have a fast Require because the proofs currently extracted from HOL-Light are very big (91 Gb for Multivariate). The proofs can be retranslated and rechecked in a directory `./tmp/output` with the reproduce script. For more info, use it without arguments as such
+```bash
+$ ./reproduce
 ```
-Require Import HOLLight.Multivariate.theorems.
-Check thm_DIV_DIV.
-```
+This script requires [opam](https://opam.ocaml.org/) to work.

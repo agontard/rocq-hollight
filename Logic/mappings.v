@@ -38,14 +38,162 @@ Proof.
     all : breakgoal.
 Qed.
 
-Instance WF_CALLORDER : WellFounded CALLORDER := thm_WF_CALLORDER.
+Lemma WF_from_implication A (P : Prop) (R : A -> A -> Prop) :
+  (P -> Wf.well_founded R) -> Wf.well_founded (fun x y => P /\ R x y).
+Proof.
+  move=> impl x ; apply Acc_intro => {x} + [/[dup] /impl ? /propT -> _].
+  replace (fun x y => True /\ R x y) with R.
+  - assumption.
+  - by ext => [|??[]].
+Qed.
+
+Definition CONDLOOPFREE env : nat -> nat -> Prop := fun x y =>
+  LOOPFREE env /\ OCC env y x.
+
+Definition term_LOOPFREE_order env (t t' : term) :=
+  LOOPFREE env /\ exists y, free_variables_term t' y /\ (y,t) \in env.
+
+Instance WF_term_LOOPFREE env : WellFounded (term_LOOPFREE_order env).
+Proof. exact (WF_from_implication (thm_LOOPFREE_WF_TERM env)). Qed.
+
+(* Definition Pair_LOOPFREE_order env := fun x y => LOOPFREE env /\
+  Relation_Operators.lexprod (fun n n' : nat => OCC env n' n)
+  (fun _ (t t' : term) => exists y, free_variables_term t' y /\ (y,t) \in env)
+  x y.
+
+Instance WF_LOOPFREE env : WellFounded (Pair_LOOPFREE_order env).
+Proof.
+  apply WF_from_implication => LFenv ; apply Lexicographic_Product.wf_lexprod.
+  - exact: thm_LOOPFREE_WF.
+  - move=> _. exact: thm_LOOPFREE_WF_TERM.
+Qed. *)
+
+Definition sumboolB : forall b : bool, {b} + {~~b}.
+Proof. by case ; constructor. Defined.
+
+Inductive sigP (P : Prop) (Q : P -> Prop) : Prop :=
+  | existP : forall x : P, Q x -> sigP Q.
+
+Section istriv.
+Context (env : seq (nat * term)) (n : nat).
+
+Equations istriv (t : term) : retval by wf t (term_LOOPFREE_order env) :=
+  istriv _ with pselect (LOOPFREE env /\ CONFLICTFREE env) => {
+    istriv t (right _ _) => istriv_HOL env n t;
+    istriv (V n') _ with n == n' => {
+      istriv _ _ true => TT;
+      istriv (V n') (left _ goodenv) _ with sumboolB (n' \in map fst env) => {
+        | left _ mappedn' => istriv (ASSOC n' env);
+        | right _ _ => FF }};
+    istriv t _ with `[< free_variables_term t n >] => {
+      istriv _ _ true => Exception;
+      istriv t (left a goodenv) _ => if exists n' (t' : term),
+        @sigP (free_variables_term t n' /\ (n',t') \in env)
+          (fun ordered => istriv t' <> FF) then Exception else FF}}.
+Next Obligation.
+  move=> /= n' mappedn' _ [? _]; split; [by [] | exists n' ; split ; [by []|]].
+  by rewrite -/(MEM _ _) thm_MEM_ASSOC.
+Qed.
+Next Obligation.
+  move=> n' s ; move: {n' s}(Fn n' s) ; rewrite/term_LOOPFREE_order/=.
+  by move=> ? _ [? _] n' ? ? ; split ; last exists n'. 
+Qed.
+
+End istriv.
+
+Lemma istriv_def : istriv =
+        ε
+         (fun
+            istriv' : nat * (nat * (nat * (nat * (nat * nat)))) ->
+                      seq (nat * term) -> nat -> term -> retval =>
+          forall (_262675 : nat * (nat * (nat * (nat * (nat * nat))))) (env : seq (nat * term))
+            (x : nat),
+          LOOPFREE env /\ CONFLICTFREE env ->
+          forall t : term,
+          istriv' _262675 env x t =
+          COND (t = V x) TT
+            (COND (exists y : nat, t = V y /\ MEM y [seq i.1 | i <- env])
+               (istriv' _262675 env x
+                  (ASSOC (ε (fun y : nat => t = V y /\ MEM y [seq i.1 | i <- env])) env))
+               (COND (IN x (free_variables_term t)) Exception
+                  (COND
+                     (exists (y : nat) (s : term),
+                        IN y (free_variables_term t) /\
+                        MEM (y, s) env /\ istriv' _262675 env x s <> FF)
+                     Exception FF))))
+         (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0))))))),
+          (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
+           (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
+            (NUMERAL (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
+             (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0))))))),
+              NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))))))).
+Proof.
+  move=> /1` env.
+  apply: (partial_align_case1 (fun env => ~(LOOPFREE env /\ CONFLICTFREE env)) (fun=> istriv)) => {env} /=.
+  - move=> _ env n [LFenv CFenv] t. rewrite/COND/IN. funelim (istriv env n t).
+    3,4 : if_triv by move:Heq0 => /eqP/[swap] ; inversion 1.
+    6 : if_intro. 5-7 : if_triv.
+    + by case: {Heq} n0.
+    + by move:Heq => /eqP -> /1=.
+    + (if_triv by exists n') ; do 2 f_equal ; align_ε ; first by [].
+      by move=> + _ [[= ->] _].
+    + if_triv by case=> ? [[= <-]] ; apply/negP.
+      if_triv by move/eqP ; rewrite Heq0.
+      rewrite if_triv_False ; first by [].
+      case => ? [? [-> [mappedn' _]]] ; move: {Heq} i0 => /negP ; apply.
+      exact: (map_f _ mappedn').
+    + by rewrite Heq/1= ; if_triv by case => ? [].
+    + case => n' [t' [[? ?] ?]] ; if_triv by case=> ? [].
+      by if_intro => // _ ; if_triv by exist n' t'.
+    + move=> NE ; rewrite Heq ; if_triv by case => ? [].
+      by if_intro => // -[n' [t' [? [? ?]]]] ; contradiction NE ; exist n' t'.
+  - by move=> * /` * ; simp istriv ; case pselect.
+  - move=> f' uv env eqistriv eqf' LFCFenv.
+    case : (EM (LOOPFREE env /\ CONFLICTFREE env)) ; last exact: LFCFenv.
+    move=> {LFCFenv} /[dup] ? [/thm_LOOPFREE_WF_TERM ind _] /f` n t.
+    elim:{ind t}(ind t) => t _ IHt ; rewrite eqf' // eqistriv //.
+    move=> /c` // /c` [ | /c` //].
+    + move=> ? ; (ε_spec by assumption) => /= n' [? ?] _.
+      by subst t ; apply: IHt ; exists n' ; split ; last rewrite thm_MEM_ASSOC.
+    + move=> * ; apply : (f_equal (fun P => if `[< P >] then _ else _)).
+      by f_equal=> /1` n' ; f_equal=> /` ? [? [?]] ; rewrite IHt// ; exists n'.
+Qed.
+
+Lemma istriv_compat : istriv_HOL = istriv.
+Proof. by rewrite istriv_def. Qed.
+
+Definition CRIGHT c c' := match c,c' with (env', eqs'),(env, eqs) =>
+  (LOOPFREE env /\
+   env' = env /\
+   ((exists (f : nat) (args1 args2 : seq term) (oth : seq (term * term)),
+       size args1 = size args2 /\
+       eqs = (Fn f args1, Fn f args2) :: oth /\ eqs' = ZIP args1 args2 ++ oth) \/
+    (exists (x : nat) (t : term) (oth : seq (term * term)),
+       eqs = (V x, t) :: oth /\
+       (x \in (map fst env) /\ eqs' = (ASSOC x env, t) :: oth \/
+        x \notin (map fst env) /\ istriv env x t = TT /\ eqs' = oth)) \/
+    (exists (x f : nat) (args : seq term) (oth : seq (term * term)),
+       eqs = (Fn f args, V x) :: oth /\ eqs' = (V x, Fn f args) :: oth))) end.
+
+Lemma CRIGHT_compat : CRIGHT_HOL = CRIGHT.
+Proof. by rewrite/CRIGHT_HOL istriv_compat. Qed.
+
+Lemma CRIGHT_def : CRIGHT = (fun _267449 : prod (seq (prod nat term)) (seq (prod term term)) => fun _267450 : prod (seq (prod nat term)) (seq (prod term term)) => (LOOPFREE (@fst (seq (prod nat term)) (seq (prod term term)) _267450)) /\ (((@fst (seq (prod nat term)) (seq (prod term term)) _267449) = (@fst (seq (prod nat term)) (seq (prod term term)) _267450)) /\ ((exists f : nat, exists args1 : seq term, exists args2 : seq term, exists oth : seq (prod term term), ((@size term args1) = (@size term args2)) /\ (((@snd (seq (prod nat term)) (seq (prod term term)) _267450) = (@cons (prod term term) (@pair term term (Fn f args1) (Fn f args2)) oth)) /\ ((@snd (seq (prod nat term)) (seq (prod term term)) _267449) = (@app (prod term term) (@ZIP term term args1 args2) oth)))) \/ ((exists x : nat, exists t : term, exists oth : seq (prod term term), ((@snd (seq (prod nat term)) (seq (prod term term)) _267450) = (@cons (prod term term) (@pair term term (V x) t) oth)) /\ (((@MEM nat x (@map (prod nat term) nat (@fst nat term) (@fst (seq (prod nat term)) (seq (prod term term)) _267450))) /\ ((@snd (seq (prod nat term)) (seq (prod term term)) _267449) = (@cons (prod term term) (@pair term term (@ASSOC nat term x (@fst (seq (prod nat term)) (seq (prod term term)) _267450)) t) oth))) \/ ((~ (@MEM nat x (@map (prod nat term) nat (@fst nat term) (@fst (seq (prod nat term)) (seq (prod term term)) _267450)))) /\ (((istriv (@fst (seq (prod nat term)) (seq (prod term term)) _267450) x t) = TT) /\ ((@snd (seq (prod nat term)) (seq (prod term term)) _267449) = oth))))) \/ (exists x : nat, exists f : nat, exists args : seq term, exists oth : seq (prod term term), ((@snd (seq (prod nat term)) (seq (prod term term)) _267450) = (@cons (prod term term) (@pair term term (Fn f args) (V x)) oth)) /\ ((@snd (seq (prod nat term)) (seq (prod term term)) _267449) = (@cons (prod term term) (@pair term term (V x) (Fn f args)) oth))))))).
+Proof.
+  by rewrite -CRIGHT_compat CRIGHT_def istriv_compat.
+Qed.
+
+Definition CALLORDER c c' := MEASURE MLEFT c c' \/ CRIGHT c c'.
+
+Lemma CALLORDER_compat : CALLORDER_HOL = CALLORDER.
+Proof. by rewrite/CALLORDER_HOL CRIGHT_compat. Qed.
+
+Instance WF_CALLORDER : WellFounded CALLORDER.
+Proof. rewrite -CALLORDER_compat ; exact thm_WF_CALLORDER. Qed.
 
 Definition istriv_with_witness env n t : {istriv env n t = TT} + {istriv env n t = FF} +
   {istriv env n t = Exception}.
 Proof. by case: (istriv env n t) ; constructor ; try constructor. Defined.
-
-Definition sumboolB : forall b : bool, {b} + {~~b}.
-Proof. by case ; constructor. Defined.
 
 Lemma CARD_setU_min_l {A : Type'} (s1 s2 : set A) :
   finite_set s1 -> finite_set s2 -> CARD s1 <= CARD (s1 `|` s2).

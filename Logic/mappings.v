@@ -47,26 +47,11 @@ Proof.
   - by ext => [|??[]].
 Qed.
 
-Definition CONDLOOPFREE env : nat -> nat -> Prop := fun x y =>
-  LOOPFREE env /\ OCC env y x.
-
 Definition term_LOOPFREE_order env (t t' : term) :=
   LOOPFREE env /\ exists y, free_variables_term t' y /\ (y,t) \in env.
 
 Instance WF_term_LOOPFREE env : WellFounded (term_LOOPFREE_order env).
 Proof. exact (WF_from_implication (thm_LOOPFREE_WF_TERM env)). Qed.
-
-(* Definition Pair_LOOPFREE_order env := fun x y => LOOPFREE env /\
-  Relation_Operators.lexprod (fun n n' : nat => OCC env n' n)
-  (fun _ (t t' : term) => exists y, free_variables_term t' y /\ (y,t) \in env)
-  x y.
-
-Instance WF_LOOPFREE env : WellFounded (Pair_LOOPFREE_order env).
-Proof.
-  apply WF_from_implication => LFenv ; apply Lexicographic_Product.wf_lexprod.
-  - exact: thm_LOOPFREE_WF.
-  - move=> _. exact: thm_LOOPFREE_WF_TERM.
-Qed. *)
 
 Definition sumboolB : forall b : bool, {b} + {~~b}.
 Proof. by case ; constructor. Defined.
@@ -101,32 +86,7 @@ Qed.
 
 End istriv.
 
-Lemma istriv_def : istriv =
-        ε
-         (fun
-            istriv' : nat * (nat * (nat * (nat * (nat * nat)))) ->
-                      seq (nat * term) -> nat -> term -> retval =>
-          forall (_262675 : nat * (nat * (nat * (nat * (nat * nat))))) (env : seq (nat * term))
-            (x : nat),
-          LOOPFREE env /\ CONFLICTFREE env ->
-          forall t : term,
-          istriv' _262675 env x t =
-          COND (t = V x) TT
-            (COND (exists y : nat, t = V y /\ MEM y [seq i.1 | i <- env])
-               (istriv' _262675 env x
-                  (ASSOC (ε (fun y : nat => t = V y /\ MEM y [seq i.1 | i <- env])) env))
-               (COND (IN x (free_variables_term t)) Exception
-                  (COND
-                     (exists (y : nat) (s : term),
-                        IN y (free_variables_term t) /\
-                        MEM (y, s) env /\ istriv' _262675 env x s <> FF)
-                     Exception FF))))
-         (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0))))))),
-          (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
-           (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
-            (NUMERAL (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0))))))),
-             (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0))))))),
-              NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))))))).
+Lemma istriv_def : istriv = (@ε ((prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> (seq (prod nat term)) -> nat -> term -> retval) (fun istriv' : (prod nat (prod nat (prod nat (prod nat (prod nat nat))))) -> (seq (prod nat term)) -> nat -> term -> retval => forall _262675 : prod nat (prod nat (prod nat (prod nat (prod nat nat)))), forall env : seq (prod nat term), forall x : nat, ((LOOPFREE env) /\ (CONFLICTFREE env)) -> forall t : term, (istriv' _262675 env x t) = (@COND retval (t = (V x)) TT (@COND retval (exists y : nat, (t = (V y)) /\ (@MEM nat y (@map (prod nat term) nat (@fst nat term) env))) (istriv' _262675 env x (@ASSOC nat term (@ε nat (fun y : nat => (t = (V y)) /\ (@MEM nat y (@map (prod nat term) nat (@fst nat term) env)))) env)) (@COND retval (@IN nat x (free_variables_term t)) Exception (@COND retval (exists y : nat, exists s : term, (@IN nat y (free_variables_term t)) /\ ((@MEM (prod nat term) (@pair nat term y s) env) /\ (~ ((istriv' _262675 env x s) = FF)))) Exception FF))))) (@pair nat (prod nat (prod nat (prod nat (prod nat nat)))) (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0)))))))) (@pair nat (prod nat (prod nat (prod nat nat))) (NUMERAL (BIT1 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))) (@pair nat (prod nat (prod nat nat)) (NUMERAL (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))) (@pair nat (prod nat nat) (NUMERAL (BIT0 (BIT1 (BIT0 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))) (@pair nat nat (NUMERAL (BIT1 (BIT0 (BIT0 (BIT1 (BIT0 (BIT1 (BIT1 0)))))))) (NUMERAL (BIT0 (BIT1 (BIT1 (BIT0 (BIT1 (BIT1 (BIT1 0)))))))))))))).
 Proof.
   move=> /1` env.
   apply: (partial_align_case1 (fun env => ~(LOOPFREE env /\ CONFLICTFREE env)) (fun=> istriv)) => {env} /=.

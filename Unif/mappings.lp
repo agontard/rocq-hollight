@@ -590,8 +590,8 @@ builtin "re_subset_def" ≔ re_subset_def;
 builtin "setC" ≔ re_compl;
 builtin "re_compl_def" ≔ re_compl_def;
 
-builtin "is_topology" ≔ is_topology;
-builtin "is_topology_def" ≔ is_topology_def;
+builtin "istopology" ≔ istopology;
+builtin "istopology_def" ≔ istopology_def;
 builtin "Topology" ≔ Topology;
 builtin "topology" ≔ topology;
 builtin "opens" ≔ _open;
